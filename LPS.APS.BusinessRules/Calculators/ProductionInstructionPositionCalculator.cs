@@ -82,6 +82,12 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
         var issues = new List<PositionIssue>();
         var positions = new List<PositionSlice>();
 
+        // TODO P0-04: 以下冻结输入字段尚未完整消费，需要在后续实现中补充
+        // - input.StagePath: 用于判断当前剩余生产路径和合法Stage位置
+        // - input.PiInventories: PI级库存位置（不能作为额外Supply增加总量，只是定位RemainingQty内部位置）
+        // - input.OperationProgress: 工序级进度，用于更细粒度的位置判断
+        // - Stage间WAITING位置: 需要形成明确Position，不能全部丢进UNLOCATED
+
         // 第一步：计算Stage位置（累计差分）
         var stagePositions = CalculateStagePositions(input, issues);
         positions.AddRange(stagePositions);
@@ -253,12 +259,12 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
     }
 
     /// <summary>
-    /// 计算厂间在途位置
+    /// 计算厂间在途位置（仅PI级Transit）
     ///
-    /// F10-F12: 实现SH号匹配和Transit/Received去重
-    /// - 同SH号的Received会扣减对应Transit数量
-    /// - 不同SH号不会串用
-    /// - 已Received的物理份额不会重复计入Transit
+    /// 职责边界：
+    /// - P前缀单据 = 生产指示级Transit，属于PI Position计算范围
+    /// - O前缀单据 = 出荷指示级Transit，属于跨厂订单链（INTER_FACTORY_ORDER），不在此处理
+    /// - F10-F12的SH逻辑已移除，由跨厂订单链独立处理
     /// </summary>
     private List<PositionSlice> CalculateTransitPositions(
         ProductionInstructionPositionInput input,
@@ -271,26 +277,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
             return transitPositions;
         }
 
-        // 构建SH号 -> 剩余未消耗Received数量的映射（用于去重）
-        // 只处理DocumentType="SH"的Received（跨厂物流到货）
-        var remainingReceivedBySH = new Dictionary<string, decimal>();
-        if (input.StrongFacts != null)
-        {
-            foreach (var received in input.StrongFacts)
-            {
-                if (!string.IsNullOrEmpty(received.DocumentNo) &&
-                    received.DocumentType == "SH")
-                {
-                    if (!remainingReceivedBySH.ContainsKey(received.DocumentNo))
-                    {
-                        remainingReceivedBySH[received.DocumentNo] = 0m;
-                    }
-                    remainingReceivedBySH[received.DocumentNo] += received.Quantity;
-                }
-            }
-        }
-
-        // 处理每个Transit，扣除已Received部分
+        // 处理每个Transit
         foreach (var transit in input.TransitFacts)
         {
             if (transit.Quantity <= 0.0001m)
@@ -298,56 +285,18 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
                 continue;
             }
 
-            decimal effectiveTransitQty = transit.Quantity;
-
-            // F10/F11/F12: 检查是否有同SH号的Received
-            if (!string.IsNullOrEmpty(transit.SourceDocument) &&
-                remainingReceivedBySH.TryGetValue(transit.SourceDocument, out decimal remainingReceivedQty) &&
-                remainingReceivedQty > 0.0001m)
+            // 只计入PI级Transit（P前缀）
+            // O前缀的SH Transit由跨厂订单链处理，不计入PI Position
+            transitPositions.Add(new PositionSlice
             {
-                // 计算本次可以扣减的数量（取Transit和剩余Received的较小值）
-                decimal deductQty = Math.Min(transit.Quantity, remainingReceivedQty);
-                effectiveTransitQty = transit.Quantity - deductQty;
-
-                // 更新剩余Received数量
-                remainingReceivedBySH[transit.SourceDocument] = remainingReceivedQty - deductQty;
-
-                if (effectiveTransitQty < 0.0001m)
-                {
-                    // 该Transit已完全Received，不再计入Position
-                    _logger.LogDebug(
-                        "Transit {TransitDoc} SH={SH} 已完全到货，不计入在途Position",
-                        transit.TransitDocumentNo,
-                        transit.SourceDocument);
-                    continue;
-                }
-                else if (effectiveTransitQty < transit.Quantity)
-                {
-                    // 部分Received
-                    _logger.LogDebug(
-                        "Transit {TransitDoc} SH={SH} 部分到货，原始={Original}，已扣={Deducted}，剩余在途={Remaining}",
-                        transit.TransitDocumentNo,
-                        transit.SourceDocument,
-                        transit.Quantity,
-                        deductQty,
-                        effectiveTransitQty);
-                }
-            }
-
-            // 只有剩余在途数量>0才加入Position
-            if (effectiveTransitQty > 0.0001m)
-            {
-                transitPositions.Add(new PositionSlice
-                {
-                    PositionType = PositionType.INTERPLANT_IN_TRANSIT,
-                    LocationKey = $"{transit.SourceFactoryCode}→{transit.TargetFactoryCode}",
-                    Quantity = effectiveTransitQty,
-                    AvailableTime = transit.EstimatedArrivalTime,
-                    IsStrongEvidence = true,
-                    SourceKey = transit.TransitDocumentNo,
-                    IsUnlocated = false
-                });
-            }
+                PositionType = PositionType.INTERPLANT_IN_TRANSIT,
+                LocationKey = $"{transit.SourceFactoryCode}→{transit.TargetFactoryCode}",
+                Quantity = transit.Quantity,
+                AvailableTime = transit.EstimatedArrivalTime,
+                IsStrongEvidence = true,
+                SourceKey = transit.TransitDocumentNo,
+                IsUnlocated = false
+            });
         }
 
         return transitPositions;
@@ -359,12 +308,25 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
     /// 强事实（如ReceivedFact）可以直接修正Position的数量
     /// 例如：MES已报工数量可以直接扣减Stage累计进度
     /// </summary>
+    /// <summary>
+    /// 应用强位置事实（MES Stage内部报工/进度证据）
+    ///
+    /// 语义边界（F05）：
+    /// - StrongFacts只能包含"仍属于ERP RemainingQty内部的位置事实"
+    /// - MES Stage报工/工序进度 = 属于RemainingQty内部，可以定位Stage Position
+    /// - SH Received = 跨厂订单链内部事实，不在此处理
+    /// - 最终已入目标M库的Received = 已从ERP RemainingQty中排除，绝不能再进入此方法
+    ///
+    /// 二次扣减风险：
+    /// - 如果StrongFacts错误包含"已入M库、ERP已扣除"的数量，会造成PI总量边界错误
+    /// - 2号位必须确保传入的StrongFacts只包含RemainingQty内部的位置证据
+    /// </summary>
     private void ApplyStrongFacts(
         ProductionInstructionPositionInput input,
         List<PositionSlice> positions,
         List<PositionIssue> issues)
     {
-        // 处理StrongFacts：已报工数量
+        // 处理StrongFacts：MES Stage内部强位置证据（仍在RemainingQty边界内）
         if (input.StrongFacts != null && input.StrongFacts.Count > 0)
         {
             foreach (var received in input.StrongFacts)
@@ -441,12 +403,12 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
 
     /// <summary>
     /// Position互斥消重
-    /// 同一物理份额不能同时算在Stage、XC和Transit
+    /// 同一物理份额不能同时算在Stage、XC和Transit（F05）
     ///
     /// 消重规则：
     ///   1. 强事实（XC、Transit）优先级高于弱推导（Stage）
     ///   2. 同Stage的XC会从该Stage Position中扣除
-    ///   3. Transit视为独立Position，不与Stage重叠
+    ///   3. Transit与Stage重叠时必须去重（F05）
     /// </summary>
     private List<PositionSlice> DeduplicatePositions(
         List<PositionSlice> positions,
@@ -506,6 +468,65 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
                 // Stage被XC完全覆盖，不保留Stage Position
             }
             // else: Stage恰好等于XC，Stage被完全覆盖，不保留
+        }
+
+        // 阶段B：扣除Transit与Stage的重叠（F05）
+        // Transit是强事实，从Stage中扣除与Transit重叠的数量
+        var totalTransitQty = transitPositions.Sum(t => t.Quantity);
+
+        if (totalTransitQty > 0.0001m && deduplicatedStages.Count > 0)
+        {
+            decimal remainingTransitToDeduct = totalTransitQty;
+            var finalStages = new List<PositionSlice>();
+
+            // 从最早Stage开始扣除Transit
+            foreach (var stage in deduplicatedStages.OrderBy(s => s.StageCode))
+            {
+                if (remainingTransitToDeduct < 0.0001m)
+                {
+                    // 没有更多Transit需要扣除，保留剩余Stage
+                    finalStages.Add(stage);
+                    continue;
+                }
+
+                if (stage.Quantity <= remainingTransitToDeduct + 0.0001m)
+                {
+                    // 该Stage被Transit完全覆盖
+                    remainingTransitToDeduct -= stage.Quantity;
+                    // 不保留该Stage Position
+                }
+                else
+                {
+                    // 该Stage部分被Transit覆盖
+                    decimal adjustedQty = stage.Quantity - remainingTransitToDeduct;
+                    finalStages.Add(new PositionSlice
+                    {
+                        PositionType = stage.PositionType,
+                        StageCode = stage.StageCode,
+                        LocationKey = stage.LocationKey,
+                        Quantity = adjustedQty,
+                        AvailableTime = stage.AvailableTime,
+                        IsStrongEvidence = stage.IsStrongEvidence,
+                        SourceKey = stage.SourceKey,
+                        IsUnlocated = stage.IsUnlocated
+                    });
+                    remainingTransitToDeduct = 0m;
+                }
+            }
+
+            deduplicatedStages = finalStages;
+
+            if (remainingTransitToDeduct > 0.0001m)
+            {
+                // Transit数量超过Stage，记录Issue
+                issues.Add(new PositionIssue
+                {
+                    IssueType = "TRANSIT_EXCEEDS_STAGE",
+                    Level = PositionIssueLevel.WARN,
+                    Description = $"Transit数量({totalTransitQty})超过Stage总量，超出{remainingTransitToDeduct}",
+                    AffectedQuantity = remainingTransitToDeduct
+                });
+            }
         }
 
         // 合并结果：去重后的Stage + 所有XC + 所有Transit

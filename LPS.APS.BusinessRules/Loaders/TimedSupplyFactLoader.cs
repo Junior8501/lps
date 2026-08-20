@@ -22,7 +22,7 @@ public class TimedSupplyFactLoader
     /// <summary>
     /// 加载原始采购事实
     /// </summary>
-    /// <param name="scope">供给事实范围（时间截止点、物料ID列表、工厂ID列表）</param>
+    /// <param name="scope">供给事实范围（物料ID列表、工厂ID列表）</param>
     /// <param name="ct">取消令牌</param>
     /// <returns>原始采购事实列表</returns>
     public async Task<IReadOnlyList<RawProcurementFact>> LoadRawFactsAsync(
@@ -40,7 +40,7 @@ public class TimedSupplyFactLoader
                 sfp.ReleaseDate,
                 sfp.StorageCode,
                 sfp.SupplyType,
-                sfp.Commitment,
+                sfp.CommitmentStatus AS Commitment,
                 sfp.SourceDocumentNo AS PhysicalSourceKey,
                 sfp.SourceDocumentLineNo,
                 sfp.SourceUpdatedAt
@@ -51,14 +51,12 @@ public class TimedSupplyFactLoader
                                       'ARRIVED_NOT_RECEIVED', 'VMI_ONSITE')
               AND (@MaterialIds IS NULL OR sfp.MaterialId IN @MaterialIds)
               AND (@FactoryIds IS NULL OR sfp.FactoryId IN @FactoryIds)
-              AND (sfp.AvailableTime IS NULL OR sfp.AvailableTime <= @DataCutoffTime)
             ORDER BY sfp.MaterialId, sfp.FactoryId, sfp.AvailableTime";
 
         var parameters = new
         {
             MaterialIds = scope.MaterialIds?.Count > 0 ? scope.MaterialIds : null,
-            FactoryIds = scope.FactoryIds?.Count > 0 ? scope.FactoryIds : null,
-            DataCutoffTime = scope.DataCutoffTime
+            FactoryIds = scope.FactoryIds?.Count > 0 ? scope.FactoryIds : null
         };
 
         var rows = await _connectionManager.QueryAsync<RawProcurementFact>(

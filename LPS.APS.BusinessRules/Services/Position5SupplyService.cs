@@ -1,6 +1,6 @@
 using LPS.APS.BusinessRules.Calculators;
-using LPS.APS.BusinessRules.Converters;
 using LPS.APS.BusinessRules.Loaders;
+using LPS.APS.BusinessRules.Models;
 using LPS.APS.Core.Dto;
 
 namespace LPS.APS.BusinessRules.Services;
@@ -8,25 +8,25 @@ namespace LPS.APS.BusinessRules.Services;
 public class Position5SupplyService
 {
     private readonly TimedSupplyFactLoader _loader;
-    private readonly ProcurementEtaCalculator _etaCalculator;
-    private readonly ProcurementFactConverter _converter;
+    private readonly TimedSupplyFactCalculator _calculator;
 
     public Position5SupplyService(
         TimedSupplyFactLoader loader,
-        ProcurementEtaCalculator etaCalculator,
-        ProcurementFactConverter converter)
+        TimedSupplyFactCalculator calculator)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
-        _etaCalculator = etaCalculator ?? throw new ArgumentNullException(nameof(etaCalculator));
-        _converter = converter ?? throw new ArgumentNullException(nameof(converter));
+        _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
     }
 
     public async Task<Position5SupplyResult> LoadProcurementSupplyAsync(
         SupplyFactScope scope,
+        FrozenFactParameters parameters,
         CancellationToken ct)
     {
         if (scope == null)
             throw new ArgumentNullException(nameof(scope));
+        if (parameters == null)
+            throw new ArgumentNullException(nameof(parameters));
 
         var result = new Position5SupplyResult
         {
@@ -41,12 +41,13 @@ public class Position5SupplyService
 
             var validFacts = new List<TimedSupplyFact>();
             var issues = new List<Position5Issue>();
+            var referenceTime = DateTime.UtcNow;
 
             foreach (var rawFact in rawFacts)
             {
                 try
                 {
-                    var timedFact = _converter.ConvertToTimedSupplyFact(rawFact);
+                    var timedFact = _calculator.CalculateEffectiveSupply(rawFact, parameters, referenceTime);
                     validFacts.Add(timedFact);
                 }
                 catch (InvalidOperationException ex)
