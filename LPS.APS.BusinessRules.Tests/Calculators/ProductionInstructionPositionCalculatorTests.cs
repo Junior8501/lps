@@ -391,6 +391,22 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.Equal(50m, result2.Positions.Sum(p => p.Quantity));
     }
 
+    // ============================================================================
+    // P0-11警告：以下F09-F12测试属于跨厂订单链（INTER_FACTORY_ORDER），不属于PI Position Calculator
+    //
+    // 根据APS_V1_5号位代码第一轮综合符合性审核报告_冻结基线核对版_v1.0_20260820：
+    // - F09-F12涉及SH（出荷指示）Transit和Received的同单号扣减逻辑
+    // - SH内部Transit/Received不属于PI Position Calculator职责
+    // - 这些测试需要迁移到独立的跨厂订单链测试类中
+    // - 当前ProductionInstructionPositionCalculator已移除F10-F12逻辑
+    //
+    // 整改要求：
+    // 1. 创建新测试类 InterFactoryOrderCalculatorTests 或类似名称
+    // 2. 迁移F09-F12测试到该新类中
+    // 3. 按跨厂订单链的正确业务语义重新设计测试
+    // 4. 不新增2↔5接口字段
+    // ============================================================================
+
     [Fact]
     public async Task F09_StageHandoff_ShouldReturnPITransitWithoutShippingTask()
     {
