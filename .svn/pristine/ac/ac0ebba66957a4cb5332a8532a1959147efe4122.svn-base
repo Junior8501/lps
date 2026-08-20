@@ -1,0 +1,251 @@
+using LPS.APS.Core.Enum;
+
+namespace LPS.APS.Core.Dto;
+
+/// <summary>
+/// Pegging 执行结果凭证（2号位 PeggingOrchestrator 的执行输出）
+///
+/// 职责归属修正（pegging3.md）：
+///   此 Voucher 是 2号位主流程执行完成后的结果对象，不再是5号位的输出。
+///   5号位的输出是 PeggingRuleVoucher（裁决凭证），此 Voucher 包含5号位裁决结果的引用。
+/// </summary>
+public class PeggingResultVoucher
+{
+    /// <summary>
+    /// 凭证ID（用于追踪和关联）
+    /// </summary>
+    public string VoucherId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// 计划版本ID
+    /// </summary>
+    public int PlanVersionId { get; set; }
+
+    /// <summary>
+    /// 需求侧订单ID
+    /// </summary>
+    public long OrderId { get; set; }
+
+    /// <summary>
+    /// 需求侧物料ID
+    /// </summary>
+    public int DemandMaterialId { get; set; }
+
+    /// <summary>
+    /// 需求数量
+    /// </summary>
+    public decimal DemandQuantity { get; set; }
+
+    /// <summary>
+    /// 单位
+    /// </summary>
+    public string UOM { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 供应分配明细列表
+    /// </summary>
+    public List<SupplyAllocationItem> SupplyAllocations { get; set; } = new();
+
+    /// <summary>
+    /// 是否完全满足（true = 供应充足，false = 供应短缺）
+    /// </summary>
+    public bool IsFullyAllocated { get; set; }
+
+    /// <summary>
+    /// 短缺数量
+    /// </summary>
+    public decimal ShortageQuantity { get; set; }
+
+    /// <summary>
+    /// BOM 遍历路径（用于调试和审计）
+    /// </summary>
+    public List<BomTraversalNode> BomPath { get; set; } = new();
+
+    /// <summary>
+    /// 内存账本（BOM 遍历的扣减过程，供调试和5号位内部使用）
+    /// </summary>
+    public List<PeggingLedgerEntry> LedgerEntries { get; set; } = new();
+
+    /// <summary>
+    /// 5号位规则裁决凭证（本次 Pegging 中5号位的裁决结果）
+    /// </summary>
+    public PeggingRuleVoucher? RuleVoucher { get; set; }
+
+    /// <summary>
+    /// 生成的 Task 候选列表（待 2号位实例化，SourceType = NEW_REQUIREMENT 的供给对应此列表）
+    /// </summary>
+    public List<TaskCandidate> TaskCandidates { get; set; } = new();
+
+    /// <summary>
+    /// Pegging 执行时间戳
+    /// </summary>
+    public DateTime ExecutedAt { get; set; } = DateTime.Now;
+
+    /// <summary>
+    /// 执行耗时（毫秒）
+    /// </summary>
+    public long ExecutionTimeMs { get; set; }
+
+    /// <summary>
+    /// 是否成功
+    /// </summary>
+    public bool IsSuccess { get; set; }
+
+    /// <summary>
+    /// 错误信息（如果失败）
+    /// </summary>
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// 警告信息列表
+    /// </summary>
+    public List<string> Warnings { get; set; } = new();
+}
+
+/// <summary>
+/// 供应分配明细项（2号位执行扣减后的实际分配结果）
+///
+/// SourceType 使用定稿口径：
+///   INVENTORY / WIP / PIPELINE / INTER_FACTORY_ORDER /
+///   PRODUCTION_INSTRUCTION / PURCHASE_ORDER / NEW_REQUIREMENT
+///
+/// NEW_REQUIREMENT 类型不写入 PeggingSupplyAllocation，
+/// 而是通过 TaskCandidates → 实例化 Task → 写物理 Pegging 表（Task-to-Task）
+/// </summary>
+public class SupplyAllocationItem
+{
+    public int SupplyMaterialId { get; set; }
+    public decimal AllocatedQuantity { get; set; }
+
+    /// <summary>
+    /// 供应来源类型（定稿枚举，见 SupplySourceType）
+    /// </summary>
+    public SupplySourceType SourceType { get; set; }
+
+    /// <summary>
+    /// 供应来源引用（批次号 / 在途单号 / 出荷指示号等）
+    /// </summary>
+    public string? SourceReference { get; set; }
+
+    /// <summary>
+    /// 出荷指示号（PRODUCTION_INSTRUCTION 类型专用，经5号位 ValidateZpBpDocumentMatch 校验）
+    /// </summary>
+    public string? ShippingInstructionNo { get; set; }
+
+    public string FactoryCode { get; set; } = string.Empty;
+    public int BomLevel { get; set; }
+    public DateTime? AvailableAt { get; set; }
+
+    /// <summary>
+    /// 是否在系统滑动冻结窗口内（MES_DISPATCHED，由2号位判断）
+    /// </summary>
+    public bool IsInFrozenZone { get; set; }
+    public int Priority { get; set; }
+}
+
+/// <summary>
+/// BOM 遍历节点（用于审计）
+/// </summary>
+public class BomTraversalNode
+{
+    /// <summary>
+    /// 节点ID
+    /// </summary>
+    public string NodeId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// 父节点ID
+    /// </summary>
+    public string? ParentNodeId { get; set; }
+
+    /// <summary>
+    /// 物料ID
+    /// </summary>
+    public int MaterialId { get; set; }
+
+    /// <summary>
+    /// 物料编码
+    /// </summary>
+    public string MaterialCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// BOM 层级
+    /// </summary>
+    public int Level { get; set; }
+
+    /// <summary>
+    /// 需求数量
+    /// </summary>
+    public decimal RequiredQuantity { get; set; }
+
+    /// <summary>
+    /// 已分配数量
+    /// </summary>
+    public decimal AllocatedQuantity { get; set; }
+
+    /// <summary>
+    /// 遍历时间戳
+    /// </summary>
+    public DateTime TraversedAt { get; set; }
+}
+
+/// <summary>
+/// Task 候选项（待实例化）
+/// </summary>
+public class TaskCandidate
+{
+    /// <summary>
+    /// 候选ID
+    /// </summary>
+    public string CandidateId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// 物料ID
+    /// </summary>
+    public int MaterialId { get; set; }
+
+    /// <summary>
+    /// 生产数量
+    /// </summary>
+    public decimal Quantity { get; set; }
+
+    /// <summary>
+    /// 单位
+    /// </summary>
+    public string UOM { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 工厂代码
+    /// </summary>
+    public string FactoryCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 产品族ID
+    /// </summary>
+    public int ProductFamilyId { get; set; }
+
+    /// <summary>
+    /// 计划开始时间
+    /// </summary>
+    public DateTime PlannedStartTime { get; set; }
+
+    /// <summary>
+    /// 计划完成时间
+    /// </summary>
+    public DateTime PlannedEndTime { get; set; }
+
+    /// <summary>
+    /// 上游依赖的 Task 候选ID 列表
+    /// </summary>
+    public List<string> UpstreamCandidateIds { get; set; } = new();
+
+    /// <summary>
+    /// 优先级
+    /// </summary>
+    public int Priority { get; set; }
+
+    /// <summary>
+    /// 是否需要立即生成（紧急订单）
+    /// </summary>
+    public bool IsUrgent { get; set; }
+}

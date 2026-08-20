@@ -1,0 +1,17 @@
+[2026-06-24 10:39:08.542] [] ========================================
+[2026-06-24 10:39:08.582] [] LPS.APS 应用程序启动中...
+[2026-06-24 10:39:08.582] [] ========================================
+[2026-06-24 10:39:09.861] [] LPS.APS 应用程序启动完成
+[2026-06-24 10:39:10.093] [Microsoft.Hosting.Lifetime] Now listening on: https://localhost:7044
+[2026-06-24 10:39:10.094] [Microsoft.Hosting.Lifetime] Now listening on: http://localhost:5163
+[2026-06-24 10:39:10.184] [Microsoft.Hosting.Lifetime] Application started. Press Ctrl+C to shut down.
+[2026-06-24 10:39:10.185] [Microsoft.Hosting.Lifetime] Hosting environment: Development
+[2026-06-24 10:39:10.186] [Microsoft.Hosting.Lifetime] Content root path: D:\AIProjs\claud\recbom\lpscode\LPS.APS.Web
+[2026-06-24 10:40:02.540] [] ========================================
+[2026-06-24 10:40:02.577] [] LPS.APS 应用程序启动中...
+[2026-06-24 10:40:02.578] [] ========================================
+[2026-06-24 10:40:05.079] [] LPS.APS 应用程序启动完成
+[2026-06-24 10:40:05.342] [Microsoft.Hosting.Lifetime] Now listening on: http://localhost:5163
+[2026-06-24 10:40:05.473] [Microsoft.Hosting.Lifetime] Application started. Press Ctrl+C to shut down.
+[2026-06-24 10:40:05.497] [Microsoft.Hosting.Lifetime] Hosting environment: Development
+[2026-06-24 10:40:05.501] [Microsoft.Hosting.Lifetime] Content root path: D:\AIProjs\claud\recbom\lpscode\LPS.APS.Web

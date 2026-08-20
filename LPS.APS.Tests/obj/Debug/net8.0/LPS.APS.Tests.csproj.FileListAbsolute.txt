@@ -1,0 +1,6 @@
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\bin\Debug\net8.0\CoverletSourceRootsMapping_LPS.APS.Tests
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\obj\Debug\net8.0\LPS.APS.Tests.csproj.AssemblyReference.cache
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\obj\Debug\net8.0\LPS.APS.Tests.GeneratedMSBuildEditorConfig.editorconfig
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\obj\Debug\net8.0\LPS.APS.Tests.AssemblyInfoInputs.cache
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\obj\Debug\net8.0\LPS.APS.Tests.AssemblyInfo.cs
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Tests\obj\Debug\net8.0\LPS.APS.Tests.csproj.CoreCompileInputs.cache

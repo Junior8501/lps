@@ -1,0 +1,12 @@
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\bin\Debug\net8.0\LPS.APS.Shared.deps.json
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\bin\Debug\net8.0\LPS.APS.Shared.dll
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\bin\Debug\net8.0\LPS.APS.Shared.pdb
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.csproj.AssemblyReference.cache
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.GeneratedMSBuildEditorConfig.editorconfig
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.AssemblyInfoInputs.cache
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.AssemblyInfo.cs
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.csproj.CoreCompileInputs.cache
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.dll
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\refint\LPS.APS.Shared.dll
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\LPS.APS.Shared.pdb
+D:\AIProjs\claud\recbom\lpscode\LPS.APS.Shared\obj\Debug\net8.0\ref\LPS.APS.Shared.dll

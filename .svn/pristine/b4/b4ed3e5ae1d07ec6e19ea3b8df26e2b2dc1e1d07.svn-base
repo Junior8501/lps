@@ -1,0 +1,38 @@
+using LPS.APS.Engine.Services.Sync.Dto;
+
+namespace LPS.APS.Engine.Services.Sync;
+
+/// <summary>
+/// MES 生产进度快照同步服务（2号位职责）
+///
+/// 调用链：
+///   00:38 CreateScheduleRunAsync  — 预创建 ScheduleRun，确定 DataCutoffTime
+///   00:40 SyncWorkOrderAsync      — sp_SyncMESWorkOrderSnapshot
+///   00:45 SyncOperationProgressAsync — sp_SyncMESOperationProgressSnapshot
+///   00:50 SyncStageProgressAsync  — sp_SyncMESStageProgressSnapshot
+///
+/// 三个快照 SP 必须使用同一 ScheduleRunId + DataCutoffTime（由 ScheduleRun 表确定）
+/// </summary>
+public interface IMESSnapshotSyncService
+{
+    /// <summary>
+    /// 00:38 预创建 ScheduleRun，确定本次排程的 DataCutoffTime
+    /// 幂等：当日已存在 RUNNING 状态记录时直接返回，不重复创建
+    /// </summary>
+    Task<MESSnapshotSyncResultDto> CreateScheduleRunAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 00:40 同步工单级快照 → MESWorkOrderSnapshot
+    /// </summary>
+    Task<MESSnapshotSyncResultDto> SyncWorkOrderAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 00:45 同步工序进度级快照 → OperationProgressSnapshot
+    /// </summary>
+    Task<MESSnapshotSyncResultDto> SyncOperationProgressAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 00:50 同步大工艺进度级快照 → StageProgressSnapshot
+    /// </summary>
+    Task<MESSnapshotSyncResultDto> SyncStageProgressAsync(CancellationToken cancellationToken = default);
+}

@@ -1,0 +1,95 @@
+using LPS.APS.Scheduling.Algorithms;
+using LPS.APS.Scheduling.DataStructures;
+using LPS.APS.Core.Models.Scheduling;
+using LPS.APS.Shared.Models;
+
+namespace LPS.APS.Scheduling.Solvers;
+
+/// <summary>
+/// 有限产能排程求解器
+/// 【1号位核心算法引擎】阶段3：纯粹的时空时序推演（排俄罗斯方块）
+/// 
+/// 职责：
+/// - 步骤3.1：任务优先级排序（Priority DESC）
+/// - 步骤3.2：时间槽寻址（倒排 + 撞墙翻转正排）
+/// - 步骤3.3：换型优化启发式（SetupAttribute分组）
+/// - 虚拟库存硬约束（AvailableTime撞墙推迟）
+/// 
+/// 架构红线：
+/// - 纯内存计算，严禁任何I/O操作
+/// - 不修改ScheduleContext中的订单/库存数据，只填充Task的StartTime/EndTime
+/// - 设备负荷率必须 ≤ 100%（这是算法正确性保证，不是业务校验）
+/// </summary>
+public class FiniteCapacitySolver
+{
+    private readonly TimeSlotFinder _timeSlotFinder;
+    private readonly SetupOptimizer _setupOptimizer;
+
+    public FiniteCapacitySolver()
+    {
+        _timeSlotFinder = new TimeSlotFinder();
+        _setupOptimizer = new SetupOptimizer();
+    }
+
+    /// <summary>
+    /// 执行有限产能排程
+    /// </summary>
+    /// <param name="context">排程沙盘上下文（由2号位在阶段1填充）</param>
+    /// <param name="options">排程配置选项</param>
+    /// <returns>排程结果</returns>
+    public SchedulingResult Solve(SchedulingContext context, SchedulingOptions options)
+    {
+        var startTime = DateTime.UtcNow;
+        var result = new SchedulingResult();
+
+        // 步骤3.1：构建优先级队列（Priority DESC）
+        var taskQueue = BuildPriorityQueue(context);
+
+        // 步骤3.2 + 3.3：逐个任务寻址时间槽
+        while (!taskQueue.IsEmpty)
+        {
+            var task = taskQueue.Dequeue();
+
+            // 寻址可用时间槽（含倒排/正排、换型优化、虚拟库存撞墙）
+            var slot = _timeSlotFinder.FindSlot(task, context, options);
+
+            if (slot.HasValue)
+            {
+                task.PlannedStartTime = slot.Value.Start;
+                task.PlannedEndTime = slot.Value.End;
+                result.ScheduledCount++;
+            }
+            else
+            {
+                task.PlannedStartTime = null;
+                task.PlannedEndTime = null;
+                result.UnscheduledCount++;
+                result.UnscheduledReasons.Add(
+                    $"Task {task.TaskId}: 无法在计划期内找到可用时间槽");
+            }
+        }
+
+        result.SolveDuration = DateTime.UtcNow - startTime;
+        result.Success = result.UnscheduledCount == 0;
+        return result;
+    }
+
+    /// <summary>
+    /// 执行局部重排（场景6步骤6.3）
+    /// 遇到锁定的在制Task时，算法直接以此为锚点，向后划拨剩余工时
+    /// </summary>
+    public SchedulingResult Reschedule(SchedulingContext context, SchedulingOptions options, IReadOnlyList<string> lockedTaskIds)
+    {
+        // TODO: 1号位实现局部重排逻辑
+        // 核心思路：锁定的Task不动，只重排未锁定的Task
+        throw new NotImplementedException("待1号位实现：局部重排算法（推雪机避让）");
+    }
+
+    private PriorityTaskQueue<SchedulingTask> BuildPriorityQueue(SchedulingContext context)
+    {
+        var queue = new PriorityTaskQueue<SchedulingTask>();
+        queue.EnqueueRange(
+            context.Tasks.Select(t => (t, (double)t.Priority)));
+        return queue;
+    }
+}
