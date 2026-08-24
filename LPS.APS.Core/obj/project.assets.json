@@ -558,11 +558,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj",
+      "projectUniqueName": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj",
       "projectName": "LPS.APS.Core",
-      "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj",
+      "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj",
       "packagesPath": "C:\\Users\\SMC7820U01\\.nuget\\packages\\",
-      "outputPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Core\\obj\\",
+      "outputPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "D:\\Microsoft Visual Studio\\2022\\Shared\\NuGetPackages"
@@ -583,8 +583,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
             }
           }
         }

@@ -60,6 +60,11 @@ public sealed class ProductionInstructionPositionInput
     public IReadOnlyList<StagePathFact> StagePath { get; init; } = Array.Empty<StagePathFact>();
 
     /// <summary>
+    /// 跨厂边事实（定义PI路径中的跨厂转移边）
+    /// </summary>
+    public IReadOnlyList<CrossFactoryEdgeFact> CrossFactoryEdges { get; init; } = Array.Empty<CrossFactoryEdgeFact>();
+
+    /// <summary>
     /// 强事实（Received等有明确单据支撑的事实）
     /// </summary>
     public IReadOnlyList<ReceivedFact> StrongFacts { get; init; } = Array.Empty<ReceivedFact>();

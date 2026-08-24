@@ -39,6 +39,9 @@ public class Position5SupplyService
             var rawFacts = await _loader.LoadRawFactsAsync(scope, ct);
             result.RawFactCount = rawFacts.Count;
 
+            // Service Overlay: 装载ManualEta覆盖（Loader后Service叠加）
+            var manualEtaOverrides = await LoadManualEtaOverridesAsync(scope, ct);
+
             var validFacts = new List<TimedSupplyFact>();
             var issues = new List<Position5Issue>();
             var referenceTime = DateTime.UtcNow;
@@ -48,7 +51,10 @@ public class Position5SupplyService
                 try
                 {
                     var timedFact = _calculator.CalculateEffectiveSupply(rawFact, parameters, referenceTime);
-                    validFacts.Add(timedFact);
+
+                    // Service Overlay: 如果存在ManualEta覆盖，替换Eta字段
+                    var overlayedFact = ApplyManualEtaOverlay(timedFact, manualEtaOverrides);
+                    validFacts.Add(overlayedFact);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -95,6 +101,65 @@ public class Position5SupplyService
             result.ErrorMessage = ex.Message;
             throw;
         }
+    }
+
+    /// <summary>
+    /// 装载ManualEta覆盖事实（Service Overlay）
+    /// </summary>
+    private async Task<Dictionary<string, ProcurementManualEtaOverride>> LoadManualEtaOverridesAsync(
+        SupplyFactScope scope,
+        CancellationToken ct)
+    {
+        // TODO: 实现从ProcurementManualEtaOverride表装载
+        // Key格式: "{PONo}|{LineNo}|{MaterialId}|{ReceivingWarehouse}"
+        // 当前返回空字典作为桩实现
+        await Task.CompletedTask;
+        return new Dictionary<string, ProcurementManualEtaOverride>();
+    }
+
+    /// <summary>
+    /// 应用ManualEta覆盖（Service Overlay）
+    /// 优先级公式（冻结）：ManualEta ?? ErpEta ?? ReleaseDate + DefaultLT
+    /// </summary>
+    private TimedSupplyFact ApplyManualEtaOverlay(
+        TimedSupplyFact originalFact,
+        Dictionary<string, ProcurementManualEtaOverride> overrides)
+    {
+        // 构造查找键：PONo|LineNo|MaterialId|Warehouse
+        // PhysicalSourceKey通常是PONo或PONo-LineNo格式
+        var key = $"{originalFact.SourceDocumentNo}|{originalFact.SourceDocumentLineNo}|{originalFact.MaterialId}|{originalFact.WarehouseCode}";
+
+        if (overrides.TryGetValue(key, out var manualOverride) && manualOverride.IsActive)
+        {
+            // 创建新的TimedSupplyFact，替换Eta和AvailableTime
+            // AvailableTime需要重新计算（ManualEta + ArrivalToUsableOffset）
+            // 简化处理：假设offset已在原Eta→AvailableTime中体现，直接加相同offset
+            var offset = originalFact.AvailableTime.HasValue && originalFact.Eta.HasValue
+                ? originalFact.AvailableTime.Value - originalFact.Eta.Value
+                : TimeSpan.Zero;
+
+            return new TimedSupplyFact
+            {
+                SupplyType = originalFact.SupplyType,
+                PhysicalSourceKey = originalFact.PhysicalSourceKey,
+                MaterialId = originalFact.MaterialId,
+                MaterialCode = originalFact.MaterialCode,
+                FactoryId = originalFact.FactoryId,
+                FactoryCode = originalFact.FactoryCode,
+                WarehouseCode = originalFact.WarehouseCode,
+                RemainingQty = originalFact.RemainingQty,
+                Eta = manualOverride.ManualEta,  // 使用ManualEta覆盖
+                AvailableTime = manualOverride.ManualEta + offset,  // 重新计算AvailableTime
+                Commitment = originalFact.Commitment,
+                Confidence = originalFact.Confidence,
+                SourceDocumentNo = originalFact.SourceDocumentNo,
+                SourceDocumentLineNo = originalFact.SourceDocumentLineNo,
+                SourceUpdatedAt = originalFact.SourceUpdatedAt
+            };
+        }
+
+        // 无覆盖，返回原Fact
+        return originalFact;
     }
 }
 

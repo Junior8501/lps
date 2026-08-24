@@ -47,7 +47,7 @@ var input = new ProductionInstructionPositionInput
     }
 };
 
-var results = await calculator.CalculatePositionsAsync(new[] { input });
+var results = await calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
 var result = results.First();
 
 Console.WriteLine($"IsSuccess: {result.IsSuccess}");

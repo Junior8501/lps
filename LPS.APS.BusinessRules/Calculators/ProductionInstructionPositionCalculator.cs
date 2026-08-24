@@ -30,8 +30,9 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<ProductionInstructionPositionResult>> CalculatePositionsAsync(
+    public Task<IReadOnlyList<ProductionInstructionPositionResult>> CalculateProductionInstructionPositionsAsync(
         IReadOnlyList<ProductionInstructionPositionInput> inputs,
+        FrozenFactParameters parameters,
         CancellationToken cancellationToken = default)
     {
         var results = new List<ProductionInstructionPositionResult>();
@@ -82,12 +83,6 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
         var issues = new List<PositionIssue>();
         var positions = new List<PositionSlice>();
 
-        // TODO P0-04: 以下冻结输入字段尚未完整消费，需要在后续实现中补充
-        // - input.StagePath: 用于判断当前剩余生产路径和合法Stage位置
-        // - input.PiInventories: PI级库存位置（不能作为额外Supply增加总量，只是定位RemainingQty内部位置）
-        // - input.OperationProgress: 工序级进度，用于更细粒度的位置判断
-        // - Stage间WAITING位置: 需要形成明确Position，不能全部丢进UNLOCATED
-
         // 第一步：计算Stage位置（累计差分）
         var stagePositions = CalculateStagePositions(input, issues);
         positions.AddRange(stagePositions);
@@ -100,7 +95,11 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
         var transitPositions = CalculateTransitPositions(input, issues);
         positions.AddRange(transitPositions);
 
-        // 第四步：处理强事实
+        // 第四步：处理PI级库存事实（WAITING/Stage库存定位）
+        var piInventoryPositions = CalculatePiInventoryPositions(input, issues);
+        positions.AddRange(piInventoryPositions);
+
+        // 第五步：处理强事实
         ApplyStrongFacts(input, positions, issues);
 
         // 第五步：Position互斥消重
@@ -285,21 +284,169 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
                 continue;
             }
 
-            // 只计入PI级Transit（P前缀）
-            // O前缀的SH Transit由跨厂订单链处理，不计入PI Position
+            // 使用CrossFactoryEdges定位Transit应从哪个Stage扣除
+            string? relatedStageCode = null;
+
+            if (input.CrossFactoryEdges != null && input.CrossFactoryEdges.Count > 0)
+            {
+                // 匹配SourceFactory→TargetFactory
+                var matchingEdges = input.CrossFactoryEdges
+                    .Where(e => e.FromFactoryCode == transit.SourceFactoryCode
+                             && e.ToFactoryCode == transit.TargetFactoryCode)
+                    .ToList();
+
+                if (matchingEdges.Count == 1)
+                {
+                    // 唯一匹配：Transit应从FromStage扣除
+                    relatedStageCode = matchingEdges[0].FromStageCode;
+                }
+                else if (matchingEdges.Count > 1)
+                {
+                    // 多个匹配：无法唯一定位，登记Issue
+                    issues.Add(new PositionIssue
+                    {
+                        IssueType = "TRANSIT_AMBIGUOUS_STAGE",
+                        Level = PositionIssueLevel.WARN,
+                        Description = $"Transit {transit.TransitDocumentNo} 无法唯一定位Stage：{matchingEdges.Count}个跨厂边匹配 {transit.SourceFactoryCode}→{transit.TargetFactoryCode}",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        AffectedQuantity = transit.Quantity,
+                        ContextData = $"Transit: {transit.TransitDocumentNo}, Edges: {string.Join(", ", matchingEdges.Select(e => $"{e.FromStageCode}→{e.ToStageCode}"))}"
+                    });
+                    // 保守降级：无法可靠定位则不关联Stage
+                    relatedStageCode = null;
+                }
+                // matchingEdges.Count == 0: 没有匹配的边，relatedStageCode保持null
+            }
+
             transitPositions.Add(new PositionSlice
             {
                 PositionType = PositionType.INTERPLANT_IN_TRANSIT,
                 LocationKey = $"{transit.SourceFactoryCode}→{transit.TargetFactoryCode}",
+                StageCode = relatedStageCode,  // 关联到FromStage（如果能唯一定位）
                 Quantity = transit.Quantity,
                 AvailableTime = transit.EstimatedArrivalTime,
                 IsStrongEvidence = true,
                 SourceKey = transit.TransitDocumentNo,
-                IsUnlocated = false
+                IsUnlocated = relatedStageCode == null  // 无法定位Stage时标记为Unlocated
             });
         }
 
         return transitPositions;
+    }
+
+    /// <summary>
+    /// 计算PI级库存位置（WAITING/Stage库存定位）
+    ///
+    /// 职责边界：
+    /// - PiInventories不是额外Supply，只是定位RemainingQty内部位置
+    /// - LocationCategory由2号位根据MaterialStageDeptContext等映射表确定
+    /// - STAGE_INVENTORY: 明确属于某个Stage → 形成该Stage Position
+    /// - INTER_STAGE_WAITING: 已离开上一Stage未进入下一Stage → 形成WAITING Position
+    /// - UNKNOWN: 无法判断 → 暂不形成Position，由UNLOCATED兜底
+    /// </summary>
+    private List<PositionSlice> CalculatePiInventoryPositions(
+        ProductionInstructionPositionInput input,
+        List<PositionIssue> issues)
+    {
+        var inventoryPositions = new List<PositionSlice>();
+
+        if (input.PiInventories == null || input.PiInventories.Count == 0)
+        {
+            return inventoryPositions;
+        }
+
+        foreach (var inventory in input.PiInventories)
+        {
+            if (inventory.Quantity <= 0.0001m)
+            {
+                continue;
+            }
+
+            // 缺少LocationCategory时登记Issue并跳过
+            if (string.IsNullOrWhiteSpace(inventory.LocationCategory))
+            {
+                issues.Add(new PositionIssue
+                {
+                    IssueType = "PI_INVENTORY_MISSING_CATEGORY",
+                    Level = PositionIssueLevel.WARN,
+                    Description = $"PI库存缺少LocationCategory: WarehouseCode={inventory.WarehouseCode}",
+                    ProductionInstructionNo = input.ProductionInstructionNo,
+                    AffectedQuantity = inventory.Quantity,
+                    ContextData = $"WarehouseCode: {inventory.WarehouseCode}, SourceDocument: {inventory.SourceDocument}"
+                });
+                continue;
+            }
+
+            // STAGE_INVENTORY: 明确映射到Stage
+            if (inventory.LocationCategory == "STAGE_INVENTORY")
+            {
+                if (string.IsNullOrWhiteSpace(inventory.RelatedStageCode))
+                {
+                    issues.Add(new PositionIssue
+                    {
+                        IssueType = "STAGE_INVENTORY_MISSING_STAGE",
+                        Level = PositionIssueLevel.ERROR,
+                        Description = $"STAGE_INVENTORY类型但缺少RelatedStageCode: WarehouseCode={inventory.WarehouseCode}",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        AffectedQuantity = inventory.Quantity,
+                        ContextData = $"WarehouseCode: {inventory.WarehouseCode}"
+                    });
+                    continue;
+                }
+
+                inventoryPositions.Add(new PositionSlice
+                {
+                    PositionType = PositionType.STAGE,
+                    StageCode = inventory.RelatedStageCode,
+                    Quantity = inventory.Quantity,
+                    LocationKey = $"PiInventory:{inventory.WarehouseCode}",
+                    IsUnlocated = false
+                });
+            }
+            // INTER_STAGE_WAITING: Stage间等待
+            else if (inventory.LocationCategory == "INTER_STAGE_WAITING")
+            {
+                // WAITING Position可以关联Stage（如果2号位能推断出在哪两个Stage之间）
+                // 也可以不关联Stage（只知道在等待但不确定具体位置）
+                inventoryPositions.Add(new PositionSlice
+                {
+                    PositionType = PositionType.WAITING,
+                    StageCode = inventory.RelatedStageCode,  // 可能为null
+                    Quantity = inventory.Quantity,
+                    LocationKey = $"Waiting:{inventory.WarehouseCode}",
+                    IsUnlocated = false
+                });
+            }
+            // UNKNOWN: 无法可靠判断
+            else if (inventory.LocationCategory == "UNKNOWN")
+            {
+                // 不形成Position，由后续UNLOCATED兜底
+                issues.Add(new PositionIssue
+                {
+                    IssueType = "PI_INVENTORY_UNKNOWN_LOCATION",
+                    Level = PositionIssueLevel.WARN,
+                    Description = $"PI库存位置类型为UNKNOWN，无法定位: WarehouseCode={inventory.WarehouseCode}",
+                    ProductionInstructionNo = input.ProductionInstructionNo,
+                    AffectedQuantity = inventory.Quantity,
+                    ContextData = $"WarehouseCode: {inventory.WarehouseCode}, 将由UNLOCATED兜底"
+                });
+            }
+            else
+            {
+                // 未知的LocationCategory值
+                issues.Add(new PositionIssue
+                {
+                    IssueType = "PI_INVENTORY_INVALID_CATEGORY",
+                    Level = PositionIssueLevel.ERROR,
+                    Description = $"PI库存LocationCategory值无效: {inventory.LocationCategory}",
+                    ProductionInstructionNo = input.ProductionInstructionNo,
+                    AffectedQuantity = inventory.Quantity,
+                    ContextData = $"WarehouseCode: {inventory.WarehouseCode}, LocationCategory: {inventory.LocationCategory}"
+                });
+            }
+        }
+
+        return inventoryPositions;
     }
 
     /// <summary>
@@ -331,71 +478,135 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
         {
             foreach (var received in input.StrongFacts)
             {
-                if (received.Quantity > 0.0001m)
+                if (received.Quantity <= 0.0001m)
                 {
-                    // 找到对应Stage的Position
-                    var stagePosition = positions
-                        .FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == received.RelatedStageCode);
+                    continue;
+                }
 
-                    if (stagePosition != null)
+                // P0边界校验：使用DocumentType判断，不靠P/O前缀
+                if (string.IsNullOrWhiteSpace(received.DocumentType))
+                {
+                    issues.Add(new PositionIssue
                     {
-                        // 从Stage Position中扣除已报工数量
-                        decimal adjustedQty = stagePosition.Quantity - received.Quantity;
+                        IssueType = "RECEIVED_MISSING_DOCUMENT_TYPE",
+                        Level = PositionIssueLevel.ERROR,
+                        Description = $"Received事实缺少DocumentType: DocumentNo={received.DocumentNo}",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        AffectedQuantity = received.Quantity,
+                        ContextData = $"DocumentNo: {received.DocumentNo}, WarehouseCode: {received.WarehouseCode}"
+                    });
+                    continue;
+                }
 
-                        if (adjustedQty >= -0.0001m)
+                // SHIPPING_INSTRUCTION禁止进入PI Position
+                if (received.DocumentType == "SHIPPING_INSTRUCTION" || received.DocumentType == "SH")
+                {
+                    issues.Add(new PositionIssue
+                    {
+                        IssueType = "RECEIVED_SHIPPING_IN_PI_POSITION",
+                        Level = PositionIssueLevel.ERROR,
+                        Description = $"厂间订单Received不得进入PI Position: DocumentNo={received.DocumentNo}",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        AffectedQuantity = received.Quantity,
+                        ContextData = $"DocumentType: {received.DocumentType}, 应由INTER_FACTORY_ORDER链处理"
+                    });
+                    continue;
+                }
+
+                // PRODUCTION_INSTRUCTION必须匹配当前PI号
+                if (received.DocumentType == "PRODUCTION_INSTRUCTION" || received.DocumentType == "PI")
+                {
+                    if (received.DocumentNo != input.ProductionInstructionNo)
+                    {
+                        issues.Add(new PositionIssue
                         {
-                            // 扣除后数量>=0，更新Position
-                            int index = positions.IndexOf(stagePosition);
-                            if (adjustedQty > 0.0001m)
+                            IssueType = "RECEIVED_PI_MISMATCH",
+                            Level = PositionIssueLevel.ERROR,
+                            Description = $"Received的PI号({received.DocumentNo})与当前PI号({input.ProductionInstructionNo})不匹配",
+                            ProductionInstructionNo = input.ProductionInstructionNo,
+                            AffectedQuantity = received.Quantity,
+                            ContextData = $"DocumentNo: {received.DocumentNo}"
+                        });
+                        continue;
+                    }
+                }
+                else if (received.DocumentType == "UNKNOWN")
+                {
+                    issues.Add(new PositionIssue
+                    {
+                        IssueType = "RECEIVED_UNKNOWN_DOCUMENT_TYPE",
+                        Level = PositionIssueLevel.WARN,
+                        Description = $"Received DocumentType=UNKNOWN，不允许直接扣Stage: DocumentNo={received.DocumentNo}",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        AffectedQuantity = received.Quantity,
+                        ContextData = $"DocumentNo: {received.DocumentNo}, WarehouseCode: {received.WarehouseCode}"
+                    });
+                    continue;
+                }
+
+                // 边界校验通过后，才能进行Stage扣减
+                // 找到对应Stage的Position
+                var stagePosition = positions
+                    .FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == received.RelatedStageCode);
+
+                if (stagePosition != null)
+                {
+                    // 从Stage Position中扣除已报工数量
+                    decimal adjustedQty = stagePosition.Quantity - received.Quantity;
+
+                    if (adjustedQty >= -0.0001m)
+                    {
+                        // 扣除后数量>=0，更新Position
+                        int index = positions.IndexOf(stagePosition);
+                        if (adjustedQty > 0.0001m)
+                        {
+                            positions[index] = new PositionSlice
                             {
-                                positions[index] = new PositionSlice
-                                {
-                                    PositionType = stagePosition.PositionType,
-                                    StageCode = stagePosition.StageCode,
-                                    LocationKey = stagePosition.LocationKey,
-                                    Quantity = adjustedQty,
-                                    AvailableTime = stagePosition.AvailableTime,
-                                    IsStrongEvidence = stagePosition.IsStrongEvidence,
-                                    SourceKey = stagePosition.SourceKey,
-                                    IsUnlocated = stagePosition.IsUnlocated
-                                };
-                            }
-                            else
-                            {
-                                // 扣除后数量=0，移除Position
-                                positions.RemoveAt(index);
-                            }
+                                PositionType = stagePosition.PositionType,
+                                StageCode = stagePosition.StageCode,
+                                LocationKey = stagePosition.LocationKey,
+                                Quantity = adjustedQty,
+                                AvailableTime = stagePosition.AvailableTime,
+                                IsStrongEvidence = stagePosition.IsStrongEvidence,
+                                SourceKey = stagePosition.SourceKey,
+                                IsUnlocated = stagePosition.IsUnlocated
+                            };
                         }
                         else
                         {
-                            // 报工数量超过Stage数量，记录Issue
-                            issues.Add(new PositionIssue
-                            {
-                                IssueType = "RECEIVED_EXCEEDS_STAGE",
-                                Level = PositionIssueLevel.WARN,
-                                Description = $"Stage {received.RelatedStageCode} 已报工数量({received.Quantity})超过Stage Position数量({stagePosition.Quantity})",
-                                ProductionInstructionNo = input.ProductionInstructionNo,
-                                StageCode = received.RelatedStageCode,
-                                AffectedQuantity = -adjustedQty
-                            });
-
-                            // 移除被完全消耗的Stage Position
-                            positions.Remove(stagePosition);
+                            // 扣除后数量=0，移除Position
+                            positions.RemoveAt(index);
                         }
                     }
                     else
                     {
-                        // 没有对应的Stage Position，记录Issue
+                        // 报工数量超过Stage数量，记录Issue
                         issues.Add(new PositionIssue
                         {
-                            IssueType = "RECEIVED_WITHOUT_STAGE",
-                            Level = PositionIssueLevel.INFO,
-                            Description = $"Stage {received.RelatedStageCode} 有报工记录({received.Quantity})但无对应Stage Position",
+                            IssueType = "RECEIVED_EXCEEDS_STAGE",
+                            Level = PositionIssueLevel.WARN,
+                            Description = $"Stage {received.RelatedStageCode} 已报工数量({received.Quantity})超过Stage Position数量({stagePosition.Quantity})",
                             ProductionInstructionNo = input.ProductionInstructionNo,
                             StageCode = received.RelatedStageCode,
-                            AffectedQuantity = received.Quantity
+                            AffectedQuantity = -adjustedQty
                         });
+
+                        // 移除被完全消耗的Stage Position
+                        positions.Remove(stagePosition);
                     }
+                }
+                else
+                {
+                    // 没有对应的Stage Position，记录Issue
+                    issues.Add(new PositionIssue
+                    {
+                        IssueType = "RECEIVED_WITHOUT_STAGE",
+                        Level = PositionIssueLevel.INFO,
+                        Description = $"Stage {received.RelatedStageCode} 有报工记录({received.Quantity})但无对应Stage Position",
+                        ProductionInstructionNo = input.ProductionInstructionNo,
+                        StageCode = received.RelatedStageCode,
+                        AffectedQuantity = received.Quantity
+                    });
                 }
             }
         }

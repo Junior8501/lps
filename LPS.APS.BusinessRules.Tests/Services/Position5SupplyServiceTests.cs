@@ -1,5 +1,4 @@
 using LPS.APS.BusinessRules.Calculators;
-using LPS.APS.BusinessRules.Converters;
 using LPS.APS.BusinessRules.Loaders;
 using LPS.APS.BusinessRules.Models;
 using LPS.APS.BusinessRules.Services;
@@ -13,20 +12,17 @@ namespace LPS.APS.BusinessRules.Tests.Services;
 public class Position5SupplyServiceTests
 {
     private Mock<TimedSupplyFactLoader> _mockLoader;
-    private Mock<ProcurementEtaCalculator> _mockEtaCalculator;
-    private Mock<ProcurementFactConverter> _mockConverter;
+    private Mock<TimedSupplyFactCalculator> _mockCalculator;
     private Position5SupplyService _service;
 
     [SetUp]
     public void SetUp()
     {
         _mockLoader = new Mock<TimedSupplyFactLoader>();
-        _mockEtaCalculator = new Mock<ProcurementEtaCalculator>();
-        _mockConverter = new Mock<ProcurementFactConverter>();
+        _mockCalculator = new Mock<TimedSupplyFactCalculator>();
         _service = new Position5SupplyService(
             _mockLoader.Object,
-            _mockEtaCalculator.Object,
-            _mockConverter.Object);
+            _mockCalculator.Object);
     }
 
     [Test]
@@ -59,16 +55,19 @@ public class Position5SupplyServiceTests
             MaterialCode = "MAT001",
             FactoryId = 5001,
             FactoryCode = "FAC01",
-            Quantity = 100,
+            RemainingQty = 100,
             PhysicalSourceKey = "PO-001"
         };
 
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rawFacts);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[0]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                It.IsAny<RawProcurementFact>(),
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Returns(timedFact);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(1));
@@ -111,7 +110,7 @@ public class Position5SupplyServiceTests
                 SupplyType = "OPEN_PO_REMAINING",
                 PhysicalSourceKey = "PO-002",
                 ManualEta = null,
-                ErpEta = null,
+                Eta = null,
                 ReleaseDate = null
             }
         };
@@ -122,18 +121,24 @@ public class Position5SupplyServiceTests
             MaterialCode = "MAT001",
             FactoryId = 5001,
             FactoryCode = "FAC01",
-            Quantity = 100,
+            RemainingQty = 100,
             PhysicalSourceKey = "PO-001"
         };
 
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rawFacts);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[0]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                It.IsAny<RawProcurementFact>(),
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Returns(timedFact);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[1]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[1],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new InvalidOperationException("F15 violation: ReleaseDate is null"));
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(2));
@@ -178,10 +183,13 @@ public class Position5SupplyServiceTests
 
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rawFacts);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[0]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[0],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new ArgumentException("Unknown SupplyType 'INVALID_TYPE'"));
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(1));
@@ -212,14 +220,23 @@ public class Position5SupplyServiceTests
 
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rawFacts);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[0]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[0],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new InvalidOperationException("Error 1"));
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[1]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[1],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new ArgumentException("Error 2"));
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[2]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[2],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new InvalidOperationException("Error 3"));
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(3));
@@ -241,7 +258,7 @@ public class Position5SupplyServiceTests
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(0));
@@ -255,7 +272,7 @@ public class Position5SupplyServiceTests
     public void LoadProcurementSupplyAsync_WithNullScope_ThrowsArgumentNullException()
     {
         Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await _service.LoadProcurementSupplyAsync(null, CancellationToken.None));
+            async () => await _service.LoadProcurementSupplyAsync(null, new FrozenFactParameters(), CancellationToken.None));
     }
 
     [Test]
@@ -270,7 +287,7 @@ public class Position5SupplyServiceTests
             .ThrowsAsync(new Exception("Database connection failed"));
 
         var ex = Assert.ThrowsAsync<Exception>(
-            async () => await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None));
+            async () => await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None));
 
         Assert.That(ex.Message, Is.EqualTo("Database connection failed"));
     }
@@ -286,7 +303,7 @@ public class Position5SupplyServiceTests
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.LoadStartTime, Is.LessThanOrEqualTo(result.LoadEndTime));
         Assert.That(result.Duration, Is.GreaterThanOrEqualTo(TimeSpan.Zero));
@@ -305,7 +322,7 @@ public class Position5SupplyServiceTests
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Scope, Is.SameAs(scope));
     }
@@ -315,25 +332,14 @@ public class Position5SupplyServiceTests
     {
         Assert.Throws<ArgumentNullException>(() => new Position5SupplyService(
             null,
-            _mockEtaCalculator.Object,
-            _mockConverter.Object));
+            _mockCalculator.Object));
     }
 
     [Test]
-    public void Constructor_WithNullEtaCalculator_ThrowsArgumentNullException()
+    public void Constructor_WithNullCalculator_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() => new Position5SupplyService(
             _mockLoader.Object,
-            null,
-            _mockConverter.Object));
-    }
-
-    [Test]
-    public void Constructor_WithNullConverter_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new Position5SupplyService(
-            _mockLoader.Object,
-            _mockEtaCalculator.Object,
             null));
     }
 
@@ -372,14 +378,23 @@ public class Position5SupplyServiceTests
 
         _mockLoader.Setup(l => l.LoadRawFactsAsync(scope, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rawFacts);
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[0]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[0],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Returns(new TimedSupplyFact { PhysicalSourceKey = "PO-001" });
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[1]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[1],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Throws(new ArgumentException("Invalid SupplyType"));
-        _mockConverter.Setup(c => c.ConvertToTimedSupplyFact(rawFacts[2]))
+        _mockCalculator.Setup(c => c.CalculateEffectiveSupply(
+                rawFacts[2],
+                It.IsAny<FrozenFactParameters>(),
+                It.IsAny<DateTime>()))
             .Returns(new TimedSupplyFact { PhysicalSourceKey = "PO-003" });
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(3));

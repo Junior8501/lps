@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "63P+mJ9cvfM=",
+  "dgSpecHash": "XIIC89YLwj8=",
   "success": true,
-  "projectFilePath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj",
+  "projectFilePath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\SMC7820U01\\.nuget\\packages\\microsoft.extensions.caching.abstractions\\8.0.0\\microsoft.extensions.caching.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\SMC7820U01\\.nuget\\packages\\microsoft.extensions.caching.memory\\8.0.1\\microsoft.extensions.caching.memory.8.0.1.nupkg.sha512",

@@ -26,9 +26,11 @@ public interface IProductionInstructionPositionCalculator
     /// Position之间必须互斥（同一物理份额不能同时算在Stage和XC）
     /// </summary>
     /// <param name="inputs">PI位置计算输入列表（2号位已装载完整事实包）</param>
+    /// <param name="parameters">冻结事实参数（3号位Snapshot → 2号位装载 → 5号位消费）</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>PI位置计算结果列表</returns>
-    Task<IReadOnlyList<ProductionInstructionPositionResult>> CalculatePositionsAsync(
+    Task<IReadOnlyList<ProductionInstructionPositionResult>> CalculateProductionInstructionPositionsAsync(
         IReadOnlyList<ProductionInstructionPositionInput> inputs,
+        FrozenFactParameters parameters,
         CancellationToken cancellationToken = default);
 }

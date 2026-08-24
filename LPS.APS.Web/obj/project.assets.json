@@ -5163,11 +5163,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Web\\LPS.APS.Web.csproj",
+      "projectUniqueName": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Web\\LPS.APS.Web.csproj",
       "projectName": "LPS.APS.Web",
-      "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Web\\LPS.APS.Web.csproj",
+      "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Web\\LPS.APS.Web.csproj",
       "packagesPath": "C:\\Users\\SMC7820U01\\.nuget\\packages\\",
-      "outputPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Web\\obj\\",
+      "outputPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Web\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "D:\\Microsoft Visual Studio\\2022\\Shared\\NuGetPackages"
@@ -5188,17 +5188,17 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj"
             },
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj"
             },
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\LPS.APS.Scheduling.csproj"
             },
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
             }
           }
         }

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+41nsCbYzr4=",
+  "dgSpecHash": "UHMdlG4y6us=",
   "success": true,
-  "projectFilePath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj",
+  "projectFilePath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Application\\LPS.APS.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\SMC7820U01\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\SMC7820U01\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

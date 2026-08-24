@@ -4130,11 +4130,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj",
+      "projectUniqueName": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj",
       "projectName": "LPS.APS.BusinessRules",
-      "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj",
+      "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj",
       "packagesPath": "C:\\Users\\SMC7820U01\\.nuget\\packages\\",
-      "outputPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.BusinessRules\\obj\\",
+      "outputPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "D:\\Microsoft Visual Studio\\2022\\Shared\\NuGetPackages"
@@ -4155,14 +4155,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\LPS.APS.Core.csproj"
             },
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\LPS.APS.Engine.csproj"
             },
-            "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
-              "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
+            "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
+              "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj"
             }
           }
         }

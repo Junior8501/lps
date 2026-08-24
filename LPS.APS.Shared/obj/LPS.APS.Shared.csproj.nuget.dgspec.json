@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {}
+    "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {}
   },
   "projects": {
-    "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
+    "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj",
+        "projectUniqueName": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj",
         "projectName": "LPS.APS.Shared",
-        "projectPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj",
+        "projectPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\LPS.APS.Shared.csproj",
         "packagesPath": "C:\\Users\\SMC7820U01\\.nuget\\packages\\",
-        "outputPath": "D:\\AIProjs\\claud\\recbom\\lpscode\\LPS.APS.Shared\\obj\\",
+        "outputPath": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "D:\\Microsoft Visual Studio\\2022\\Shared\\NuGetPackages"

@@ -2,7 +2,7 @@ using LPS.APS.BusinessRules.Calculators;
 using LPS.APS.Core.Dto;
 using LPS.APS.Core.Enum;
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
+using NUnit.Framework;
 
 namespace LPS.APS.BusinessRules.Tests.Calculators;
 
@@ -19,7 +19,7 @@ public class ProductionInstructionPositionCalculatorTests
         _calculator = new ProductionInstructionPositionCalculator(NullLogger<ProductionInstructionPositionCalculator>.Instance);
     }
 
-    [Fact]
+    [Test]
     public async Task F01_NormalStageProgress_ShouldCloseTo100()
     {
         var input = new ProductionInstructionPositionInput
@@ -54,27 +54,27 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
-        Assert.Equal(4, result.Positions.Count);
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
+        Assert.That(result.Positions.Count, Is.EqualTo(4));
 
         var s10Position = result.Positions.First(p => p.StageCode == "S10");
-        Assert.Equal(30m, s10Position.Quantity);
+        Assert.That(s10Position.Quantity, Is.EqualTo(30m));
 
         var s20Position = result.Positions.First(p => p.StageCode == "S20");
-        Assert.Equal(30m, s20Position.Quantity);
+        Assert.That(s20Position.Quantity, Is.EqualTo(30m));
 
         var s30Position = result.Positions.First(p => p.StageCode == "S30");
-        Assert.Equal(20m, s30Position.Quantity);
+        Assert.That(s30Position.Quantity, Is.EqualTo(20m));
 
         var unlocatedPosition = result.Positions.First(p => p.PositionType == PositionType.UNLOCATED);
-        Assert.Equal(20m, unlocatedPosition.Quantity);
+        Assert.That(unlocatedPosition.Quantity, Is.EqualTo(20m));
     }
 
-    [Fact]
+    [Test]
     public async Task F02_DownstreamGreaterThanUpstream_ShouldCorrectConservatively()
     {
         var input = new ProductionInstructionPositionInput
@@ -102,18 +102,18 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Contains(result.Issues, i => i.IssueType == "DOWNSTREAM_GT_UPSTREAM");
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Issues.Any(i => i.IssueType == "DOWNSTREAM_GT_UPSTREAM"), Is.True);
 
         var s20Position = result.Positions.FirstOrDefault(p => p.StageCode == "S20");
-        Assert.NotNull(s20Position);
-        Assert.Equal(60m, s20Position.Quantity);
+        Assert.That(s20Position, Is.Not.Null);
+        Assert.That(s20Position.Quantity, Is.EqualTo(60m));
     }
 
-    [Fact]
+    [Test]
     public async Task F03_MissingMiddleStage_ShouldUseDownstreamMinimum()
     {
         var input = new ProductionInstructionPositionInput
@@ -141,20 +141,20 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var s10Position = result.Positions.First(p => p.StageCode == "S10");
-        Assert.Equal(50m, s10Position.Quantity);
+        Assert.That(s10Position.Quantity, Is.EqualTo(50m));
 
         var s30Position = result.Positions.First(p => p.StageCode == "S30");
-        Assert.Equal(30m, s30Position.Quantity);
+        Assert.That(s30Position.Quantity, Is.EqualTo(30m));
     }
 
-    [Fact]
+    [Test]
     public async Task F04_XcOverlapsStage_ShouldDeduplicate()
     {
         var input = new ProductionInstructionPositionInput
@@ -193,21 +193,21 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == "S10");
-        Assert.NotNull(s10Position);
-        Assert.Equal(30m, s10Position.Quantity);
+        Assert.That(s10Position, Is.Not.Null);
+        Assert.That(s10Position.Quantity, Is.EqualTo(30m));
 
         var xcPosition = result.Positions.First(p => p.PositionType == PositionType.XC);
-        Assert.Equal(20m, xcPosition.Quantity);
+        Assert.That(xcPosition.Quantity, Is.EqualTo(20m));
     }
 
-    [Fact]
+    [Test]
     public async Task F05_TransitIndependent_ShouldNotOverlapStage()
     {
         var input = new ProductionInstructionPositionInput
@@ -239,20 +239,29 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var transitPosition = result.Positions.First(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
-        Assert.Equal(25m, transitPosition.Quantity);
+        Assert.That(transitPosition.Quantity, Is.EqualTo(25m));
 
+        // F05规则：Transit与Stage互斥去重，Transit应从Stage扣除
+        // Stage原始60 - Transit 25 = 35
         var stagePosition = result.Positions.First(p => p.PositionType == PositionType.STAGE);
-        Assert.Equal(60m, stagePosition.Quantity);
+        Assert.That(stagePosition.Quantity, Is.EqualTo(35m), "Transit should be deducted from Stage (60 - 25 = 35)");
+
+        // 剩余15应该进入UNLOCATED
+        var unlocatedPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.UNLOCATED);
+        if (unlocatedPosition != null)
+        {
+            Assert.That(unlocatedPosition.Quantity, Is.EqualTo(15m));
+        }
     }
 
-    [Fact]
+    [Test]
     public async Task F06_UnlocatedGap_ShouldFillWithUnlocated()
     {
         var input = new ProductionInstructionPositionInput
@@ -273,20 +282,20 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var unlocatedPosition = result.Positions.First(p => p.PositionType == PositionType.UNLOCATED);
-        Assert.Equal(15m, unlocatedPosition.Quantity);
-        Assert.True(unlocatedPosition.IsUnlocated);
+        Assert.That(unlocatedPosition.Quantity, Is.EqualTo(15m));
+        Assert.That(unlocatedPosition.IsUnlocated, Is.True);
 
-        Assert.Contains(result.Issues, i => i.IssueType == "UNLOCATED_GAP");
+        Assert.That(result.Issues.Any(i => i.IssueType == "UNLOCATED_GAP"), Is.True);
     }
 
-    [Fact]
+    [Test]
     public async Task F07_StrongFactCorrection_ShouldAdjustPosition()
     {
         var input = new ProductionInstructionPositionInput
@@ -324,20 +333,20 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == "S10");
         if (s10Position != null)
         {
-            Assert.Equal(10m, s10Position.Quantity);
+            Assert.That(s10Position.Quantity, Is.EqualTo(10m));
         }
     }
 
-    [Fact]
+    [Test]
     public async Task F08_MultiplePiSameMaterial_ShouldReturnSeparateResults()
     {
         var inputs = new[]
@@ -378,17 +387,17 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(inputs);
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(inputs, new FrozenFactParameters(), CancellationToken.None);
 
-        Assert.Equal(2, results.Count);
+        Assert.That(results.Count, Is.EqualTo(2));
 
         var result1 = results.First(r => r.ProductionInstructionNo == "PI-F08-001");
-        Assert.True(result1.IsSuccess);
-        Assert.Equal(100m, result1.Positions.Sum(p => p.Quantity));
+        Assert.That(result1.IsSuccess, Is.True);
+        Assert.That(result1.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var result2 = results.First(r => r.ProductionInstructionNo == "PI-F08-002");
-        Assert.True(result2.IsSuccess);
-        Assert.Equal(50m, result2.Positions.Sum(p => p.Quantity));
+        Assert.That(result2.IsSuccess, Is.True);
+        Assert.That(result2.Positions.Sum(p => p.Quantity), Is.EqualTo(50m));
     }
 
     // ============================================================================
@@ -407,7 +416,7 @@ public class ProductionInstructionPositionCalculatorTests
     // 4. 不新增2↔5接口字段
     // ============================================================================
 
-    [Fact]
+    [Test]
     public async Task F09_StageHandoff_ShouldReturnPITransitWithoutShippingTask()
     {
         var input = new ProductionInstructionPositionInput
@@ -440,22 +449,22 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
-        Assert.NotNull(transitPosition);
-        Assert.Equal(50m, transitPosition.Quantity);
+        Assert.That(transitPosition, Is.Not.Null);
+        Assert.That(transitPosition.Quantity, Is.EqualTo(50m));
 
         var stagePosition = result.Positions.FirstOrDefault(p => p.StageCode == "S10");
-        Assert.NotNull(stagePosition);
-        Assert.Equal(50m, stagePosition.Quantity);
+        Assert.That(stagePosition, Is.Not.Null);
+        Assert.That(stagePosition.Quantity, Is.EqualTo(50m));
     }
 
-    [Fact]
+    [Test]
     public async Task F10_SameSHReceived_ShouldMatchCorrectly()
     {
         var input = new ProductionInstructionPositionInput
@@ -500,28 +509,28 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit 60 - Received 30 = 30剩余在途
         var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
-        Assert.NotNull(transitPosition);
-        Assert.Equal(30m, transitPosition.Quantity);
+        Assert.That(transitPosition, Is.Not.Null);
+        Assert.That(transitPosition.Quantity, Is.EqualTo(30m));
 
         // Stage 30被Received校正后变为0，被移除
         var stagePosition = result.Positions.FirstOrDefault(p => p.StageCode == "S10");
-        Assert.True(stagePosition == null || stagePosition.Quantity < 0.01m);
+        Assert.That(stagePosition == null || stagePosition.Quantity < 0.01m, Is.True);
 
         // 差额70进入UNLOCATED
         var unlocatedPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.UNLOCATED);
-        Assert.NotNull(unlocatedPosition);
-        Assert.Equal(70m, unlocatedPosition.Quantity);
+        Assert.That(unlocatedPosition, Is.Not.Null);
+        Assert.That(unlocatedPosition.Quantity, Is.EqualTo(70m));
     }
 
-    [Fact]
+    [Test]
     public async Task F11_DifferentSHSameMaterial_ShouldNotMix()
     {
         var input = new ProductionInstructionPositionInput
@@ -575,23 +584,23 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit-003B完全保留（不同SH不串用）
         var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
-        Assert.NotNull(transitPosition);
-        Assert.Equal(60m, transitPosition.Quantity);
+        Assert.That(transitPosition, Is.Not.Null);
+        Assert.That(transitPosition.Quantity, Is.EqualTo(60m));
 
         // Stage 40被Received完全消耗后变为0
         var stagePosition = result.Positions.FirstOrDefault(p => p.StageCode == "S10");
-        Assert.True(stagePosition == null || stagePosition.Quantity < 0.01m);
+        Assert.That(stagePosition == null || stagePosition.Quantity < 0.01m, Is.True);
     }
 
-    [Fact]
+    [Test]
     public async Task F12_TransitAlreadyReceived_ShouldNotDuplicate()
     {
         var input = new ProductionInstructionPositionInput
@@ -636,24 +645,24 @@ public class ProductionInstructionPositionCalculatorTests
             }
         };
 
-        var results = await _calculator.CalculatePositionsAsync(new[] { input });
+        var results = await _calculator.CalculateProductionInstructionPositionsAsync(new[] { input }, new FrozenFactParameters(), CancellationToken.None);
         var result = results.First();
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(100m, result.Positions.Sum(p => p.Quantity));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit已完全Received，不再计入Position
         var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
-        Assert.True(transitPosition == null || transitPosition.Quantity < 0.01m);
+        Assert.That(transitPosition == null || transitPosition.Quantity < 0.01m, Is.True);
 
         // Stage 50被Received完全消耗后变为0
         var stagePosition = result.Positions.FirstOrDefault(p => p.StageCode == "S10");
-        Assert.True(stagePosition == null || stagePosition.Quantity < 0.01m);
+        Assert.That(stagePosition == null || stagePosition.Quantity < 0.01m, Is.True);
 
         // 差额100进入UNLOCATED
         var unlocatedPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.UNLOCATED);
-        Assert.NotNull(unlocatedPosition);
-        Assert.Equal(100m, unlocatedPosition.Quantity);
+        Assert.That(unlocatedPosition, Is.Not.Null);
+        Assert.That(unlocatedPosition.Quantity, Is.EqualTo(100m));
     }
 }
 

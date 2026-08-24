@@ -4,6 +4,7 @@ using LPS.APS.Core.Dto;
 using LPS.APS.Engine.Data;
 using Moq;
 using NUnit.Framework;
+using System.Data;
 
 namespace LPS.APS.BusinessRules.Tests.Loaders;
 
@@ -41,9 +42,9 @@ public class TimedSupplyFactLoaderTests
                 FactoryCode = "FAC01",
                 RemainingQty = 100,
                 ManualEta = new DateTime(2026, 8, 25),
-                ErpEta = new DateTime(2026, 8, 26),
+                Eta = new DateTime(2026, 8, 26),
                 ReleaseDate = new DateTime(2026, 8, 15),
-                WarehouseCode = "WH01",
+                StorageCode = "WH01",
                 SupplyType = "OPEN_PO_REMAINING",
                 Commitment = "COMMITTED",
                 Confidence = "HIGH",
@@ -57,8 +58,9 @@ public class TimedSupplyFactLoaderTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(expectedFacts);
 
         // Act
@@ -86,9 +88,10 @@ public class TimedSupplyFactLoaderTests
         _mockConnectionManager
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
-                It.Is<object>(p => ((dynamic)p).MaterialIds == null),
+                It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
         // Act
@@ -99,9 +102,10 @@ public class TimedSupplyFactLoaderTests
         _mockConnectionManager.Verify(
             m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
-                It.Is<object>(p => ((dynamic)p).MaterialIds == null),
+                It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()),
+                It.IsAny<int?>()),
             Times.Once);
     }
 
@@ -119,9 +123,10 @@ public class TimedSupplyFactLoaderTests
         _mockConnectionManager
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
-                It.Is<object>(p => ((dynamic)p).MaterialIds == null),
+                It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
         // Act
@@ -154,8 +159,9 @@ public class TimedSupplyFactLoaderTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(expectedFacts);
 
         // Act

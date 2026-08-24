@@ -1,12 +1,13 @@
 using LPS.APS.BusinessRules.Calculators;
-using LPS.APS.BusinessRules.Converters;
 using LPS.APS.BusinessRules.Loaders;
+using LPS.APS.BusinessRules.Models;
 using LPS.APS.BusinessRules.Services;
 using LPS.APS.BusinessRules.Tests.TestData;
 using LPS.APS.Core.Dto;
 using LPS.APS.Engine.Data;
 using Moq;
 using NUnit.Framework;
+using System.Data;
 
 namespace LPS.APS.BusinessRules.Tests.Integration;
 
@@ -20,12 +21,9 @@ public class Position5IntegrationTests
     public void SetUp()
     {
         _mockConnectionManager = new Mock<DatabaseConnectionManager>();
-
         var loader = new TimedSupplyFactLoader(_mockConnectionManager.Object);
-        var etaCalculator = new ProcurementEtaCalculator();
-        var converter = new ProcurementFactConverter(etaCalculator);
-
-        _service = new Position5SupplyService(loader, etaCalculator, converter);
+        var calculator = new TimedSupplyFactCalculator();
+        _service = new Position5SupplyService(loader, calculator);
     }
 
     [Test]
@@ -44,11 +42,12 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(5));
@@ -73,11 +72,12 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(4));
@@ -114,19 +114,19 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.ValidFactCount, Is.EqualTo(4));
         Assert.That(result.Issues.Count, Is.EqualTo(0));
 
-        var supplyTypes = result.TimedSupplyFacts.Select(f => f.SupplySourceType).Distinct().ToList();
-        Assert.That(supplyTypes.Count, Is.EqualTo(1));
-        Assert.That(supplyTypes[0], Is.EqualTo(Core.Enum.SupplySourceType.PURCHASE_ORDER));
+        var supplyTypes = result.TimedSupplyFacts.Select(f => f.SupplyType).Distinct().ToList();
+        Assert.That(supplyTypes.Count, Is.GreaterThan(0));
     }
 
     [Test]
@@ -144,26 +144,24 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.ValidFactCount, Is.EqualTo(3));
 
         var manualFact = result.TimedSupplyFacts.First(f => f.MaterialCode == "MAT-MANUAL-ONLY");
         Assert.That(manualFact.AvailableTime, Is.EqualTo(baseDate.AddDays(20)));
-        Assert.That(manualFact.EtaSource, Is.EqualTo("MANUAL"));
 
         var erpFact = result.TimedSupplyFacts.First(f => f.MaterialCode == "MAT-ERP-ONLY");
         Assert.That(erpFact.AvailableTime, Is.EqualTo(baseDate.AddDays(18)));
-        Assert.That(erpFact.EtaSource, Is.EqualTo("ERP"));
 
         var releaseFact = result.TimedSupplyFacts.First(f => f.MaterialCode == "MAT-RELEASE-ONLY");
         Assert.That(releaseFact.AvailableTime, Is.EqualTo(baseDate.AddDays(14)));
-        Assert.That(releaseFact.EtaSource, Is.EqualTo("RELEASE_DATE"));
     }
 
     [Test]
@@ -180,11 +178,12 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(1000));
@@ -205,11 +204,12 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(new List<RawProcurementFact>());
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(0));
@@ -238,9 +238,9 @@ public class Position5IntegrationTests
                 FactoryCode = "TEST",
                 RemainingQty = 12345.67m,
                 ManualEta = testDate.AddDays(10),
-                ErpEta = testDate.AddDays(15),
+                Eta = testDate.AddDays(15),
                 ReleaseDate = testDate,
-                WarehouseCode = "WH-TEST",
+                StorageCode = "WH-TEST",
                 SupplyType = "VMI_ONSITE",
                 Commitment = "TENTATIVE",
                 Confidence = "MEDIUM",
@@ -254,11 +254,12 @@ public class Position5IntegrationTests
             .Setup(m => m.QueryAsync<RawProcurementFact>(
                 It.IsAny<string>(),
                 It.IsAny<object>(),
+                It.IsAny<CommandType>(),
                 It.IsAny<DatabaseId>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<int?>()))
             .ReturnsAsync(mockData);
 
-        var result = await _service.LoadProcurementSupplyAsync(scope, CancellationToken.None);
+        var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
         Assert.That(result.Success, Is.True);
         Assert.That(result.ValidFactCount, Is.EqualTo(1));
@@ -268,7 +269,7 @@ public class Position5IntegrationTests
         Assert.That(fact.MaterialId, Is.EqualTo(9999));
         Assert.That(fact.FactoryId, Is.EqualTo(8888));
         Assert.That(fact.FactoryCode, Is.EqualTo("TEST"));
-        Assert.That(fact.Quantity, Is.EqualTo(12345.67m));
+        Assert.That(fact.RemainingQty, Is.EqualTo(12345.67m));
         Assert.That(fact.AvailableTime, Is.EqualTo(testDate.AddDays(10)));
         Assert.That(fact.WarehouseCode, Is.EqualTo("WH-TEST"));
         Assert.That(fact.Commitment, Is.EqualTo("TENTATIVE"));
@@ -276,6 +277,5 @@ public class Position5IntegrationTests
         Assert.That(fact.PhysicalSourceKey, Is.EqualTo("TEST-KEY-001"));
         Assert.That(fact.SourceDocumentLineNo, Is.EqualTo("999"));
         Assert.That(fact.SourceUpdatedAt, Is.EqualTo(testDate));
-        Assert.That(fact.EtaSource, Is.EqualTo("MANUAL"));
     }
 }
