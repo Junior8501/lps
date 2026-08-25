@@ -32,7 +32,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = new DateTime(2026, 8, 25, 14, 0, 0),  // 人工ETA
             Eta = new DateTime(2026, 8, 28, 9, 0, 0),      // ERP ETA
             ReleaseDate = new DateTime(2026, 7, 20),
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "CONFIRMED",
             SourceDocumentNo = "PO-2026-001",
             SourceDocumentLineNo = "10",
@@ -85,7 +85,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,  // 人工ETA已取消
             Eta = new DateTime(2026, 8, 28, 9, 0, 0),  // 回退到ERP ETA
             ReleaseDate = new DateTime(2026, 7, 25),
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "ESTIMATED",
             SourceDocumentNo = "PO-2026-002",
             SourceDocumentLineNo = "20",
@@ -132,7 +132,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,  // 无人工ETA
             Eta = null,     // 无ERP ETA
             ReleaseDate = releaseDate,  // 基准日期
-            Commitment = "NOT_COMMITTED",
+            CommitmentStatus = "NOT_COMMITTED",
             Confidence = "ESTIMATED",
             SourceDocumentNo = "PO-2026-003",
             SourceDocumentLineNo = "30",
@@ -180,7 +180,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = null,
             ReleaseDate = releaseDate,
-            Commitment = "NOT_COMMITTED",
+            CommitmentStatus = "NOT_COMMITTED",
             Confidence = "ESTIMATED",
             SourceDocumentNo = "PO-2026-004",
             SourceDocumentLineNo = "40",
@@ -225,7 +225,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = null,
             ReleaseDate = releaseDate,
-            Commitment = "NOT_COMMITTED",
+            CommitmentStatus = "NOT_COMMITTED",
             Confidence = "ESTIMATED",
             SourceDocumentNo = "PO-2026-005",
             SourceDocumentLineNo = "50",
@@ -273,7 +273,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = new DateTime(2026, 8, 22, 10, 0, 0),
             ReleaseDate = null,
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "CONFIRMED",
             SourceDocumentNo = "ARR-2026-001",
             SourceDocumentLineNo = "10",
@@ -320,7 +320,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = new DateTime(2026, 8, 23, 15, 30, 0),
             ReleaseDate = null,
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "CONFIRMED",
             SourceDocumentNo = "ARR-2026-002",
             SourceDocumentLineNo = "20",
@@ -371,7 +371,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = new DateTime(2026, 8, 21, 8, 0, 0),  // VMI有ETA
             ReleaseDate = null,
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "CONFIRMED",
             SourceDocumentNo = "VMI-DOC-001",
             SourceDocumentLineNo = "1",
@@ -419,7 +419,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = null,
             Eta = null,
             ReleaseDate = null,  // 连ReleaseDate都没有
-            Commitment = "NOT_COMMITTED",
+            CommitmentStatus = "NOT_COMMITTED",
             Confidence = "ESTIMATED",
             SourceDocumentNo = "PO-2026-999",
             SourceDocumentLineNo = "999",
@@ -468,7 +468,7 @@ public sealed class TimedSupplyFactCalculatorTests
             ManualEta = new DateTime(2026, 9, 1, 10, 0, 0),   // 人工ETA
             Eta = new DateTime(2026, 9, 5, 14, 0, 0),      // ERP ETA
             ReleaseDate = new DateTime(2026, 7, 15),           // Release Date
-            Commitment = "COMMITTED",
+            CommitmentStatus = "COMMITTED",
             Confidence = "CONFIRMED",
             SourceDocumentNo = "PO-INT-001",
             SourceDocumentLineNo = "1",

@@ -242,7 +242,7 @@ public class Position5IntegrationTests
                 ReleaseDate = testDate,
                 StorageCode = "WH-TEST",
                 SupplyType = "VMI_ONSITE",
-                Commitment = "TENTATIVE",
+                CommitmentStatus = "TENTATIVE",
                 Confidence = "MEDIUM",
                 PhysicalSourceKey = "TEST-KEY-001",
                 SourceDocumentLineNo = "999",
@@ -272,7 +272,7 @@ public class Position5IntegrationTests
         Assert.That(fact.RemainingQty, Is.EqualTo(12345.67m));
         Assert.That(fact.AvailableTime, Is.EqualTo(testDate.AddDays(10)));
         Assert.That(fact.WarehouseCode, Is.EqualTo("WH-TEST"));
-        Assert.That(fact.Commitment, Is.EqualTo("TENTATIVE"));
+        Assert.That(fact.CommitmentStatus, Is.EqualTo("TENTATIVE"));
         Assert.That(fact.Confidence, Is.EqualTo("MEDIUM"));
         Assert.That(fact.PhysicalSourceKey, Is.EqualTo("TEST-KEY-001"));
         Assert.That(fact.SourceDocumentLineNo, Is.EqualTo("999"));

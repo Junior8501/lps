@@ -3,20 +3,12 @@
   "WorkspaceRootPath": "D:\\AIProjs\\gitprojs\\lpscode\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|d:\\aiprojs\\gitprojs\\lpscode\\lps.aps.businessrules\\converters\\procurementfactconverter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|solutionrelative:lps.aps.businessrules\\converters\\procurementfactconverter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|d:\\aiprojs\\gitprojs\\lpscode\\lps.aps.businessrules\\calculators\\timedsupplyfactcalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|solutionrelative:lps.aps.businessrules\\calculators\\timedsupplyfactcalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|d:\\aiprojs\\gitprojs\\lpscode\\lps.aps.businessrules\\calculators\\productioninstructionpositioncalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|solutionrelative:lps.aps.businessrules\\calculators\\productioninstructionpositioncalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|d:\\aiprojs\\gitprojs\\lpscode\\lps.aps.businessrules\\calculators\\procurementetacalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5F611F83-8239-4513-8BD1-62E19DCB7C1D}|LPS.APS.BusinessRules\\LPS.APS.BusinessRules.csproj|solutionrelative:lps.aps.businessrules\\calculators\\procurementetacalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B7E2994A-7C35-4FEF-B22B-56580662285D}|LPS.APS.Web\\LPS.APS.Web.csproj|d:\\aiprojs\\gitprojs\\lpscode\\lps.aps.web\\extensions\\hangfireserviceextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -82,19 +74,6 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ProcurementFactConverter.cs",
-              "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Converters\\ProcurementFactConverter.cs",
-              "RelativeDocumentMoniker": "LPS.APS.BusinessRules\\Converters\\ProcurementFactConverter.cs",
-              "ToolTip": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Converters\\ProcurementFactConverter.cs",
-              "RelativeToolTip": "LPS.APS.BusinessRules\\Converters\\ProcurementFactConverter.cs",
-              "ViewState": "AgIAACsAAAAAAAAAAAAUwCwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-20T08:20:14.309Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
               "Title": "TimedSupplyFactCalculator.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Calculators\\TimedSupplyFactCalculator.cs",
               "RelativeDocumentMoniker": "LPS.APS.BusinessRules\\Calculators\\TimedSupplyFactCalculator.cs",
@@ -106,19 +85,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "ProcurementEtaCalculator.cs",
-              "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Calculators\\ProcurementEtaCalculator.cs",
-              "RelativeDocumentMoniker": "LPS.APS.BusinessRules\\Calculators\\ProcurementEtaCalculator.cs",
-              "ToolTip": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Calculators\\ProcurementEtaCalculator.cs",
-              "RelativeToolTip": "LPS.APS.BusinessRules\\Calculators\\ProcurementEtaCalculator.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-20T08:19:53.868Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "ProductionInstructionPositionCalculator.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.BusinessRules\\Calculators\\ProductionInstructionPositionCalculator.cs",
               "RelativeDocumentMoniker": "LPS.APS.BusinessRules\\Calculators\\ProductionInstructionPositionCalculator.cs",
@@ -130,7 +97,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 6,
               "Title": "IBatchSplitter.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\Interfaces\\IBatchSplitter.cs",
               "RelativeDocumentMoniker": "LPS.APS.Core\\Interfaces\\IBatchSplitter.cs",
@@ -142,7 +109,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 2,
               "Title": "HangfireServiceExtensions.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Web\\Extensions\\HangfireServiceExtensions.cs",
               "RelativeDocumentMoniker": "LPS.APS.Web\\Extensions\\HangfireServiceExtensions.cs",
@@ -154,7 +121,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 4,
               "Title": "FiniteCapacitySolver.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\Solvers\\FiniteCapacitySolver.cs",
               "RelativeDocumentMoniker": "LPS.APS.Scheduling\\Solvers\\FiniteCapacitySolver.cs",
@@ -166,7 +133,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 5,
               "Title": "SchedulingOrchestrator.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Application\\Services\\SchedulingOrchestrator.cs",
               "RelativeDocumentMoniker": "LPS.APS.Application\\Services\\SchedulingOrchestrator.cs",
@@ -178,7 +145,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 3,
               "Title": "SchedulingContext.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\Models\\Scheduling\\SchedulingContext.cs",
               "RelativeDocumentMoniker": "LPS.APS.Core\\Models\\Scheduling\\SchedulingContext.cs",
@@ -190,7 +157,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 7,
               "Title": "ISchedulingOrchestrator.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Core\\Interfaces\\ISchedulingOrchestrator.cs",
               "RelativeDocumentMoniker": "LPS.APS.Core\\Interfaces\\ISchedulingOrchestrator.cs",
@@ -202,7 +169,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 8,
               "Title": "SnapshotService.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Application\\Services\\SnapshotService.cs",
               "RelativeDocumentMoniker": "LPS.APS.Application\\Services\\SnapshotService.cs",
@@ -214,7 +181,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 9,
               "Title": "TimeSlotFinder.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\Solvers\\TimeSlotFinder.cs",
               "RelativeDocumentMoniker": "LPS.APS.Scheduling\\Solvers\\TimeSlotFinder.cs",
@@ -226,7 +193,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 10,
               "Title": "HangfireAuthorizationFilter.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Web\\Extensions\\HangfireAuthorizationFilter.cs",
               "RelativeDocumentMoniker": "LPS.APS.Web\\Extensions\\HangfireAuthorizationFilter.cs",
@@ -238,7 +205,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 14,
               "Title": "APSModels.cs",
               "DocumentMoniker": "D:\\CODE\\LPS\\LPS.APS.Shared\\Models\\APSModels.cs",
               "RelativeDocumentMoniker": "..\\..\\..\\CODE\\LPS\\LPS.APS.Shared\\Models\\APSModels.cs",
@@ -250,7 +217,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 12,
               "Title": "OrderPromotionService.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\Services\\Sync\\OrderPromotionService.cs",
               "RelativeDocumentMoniker": "LPS.APS.Engine\\Services\\Sync\\OrderPromotionService.cs",
@@ -262,7 +229,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 13,
               "Title": "ERPOrderSyncService.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Engine\\Services\\Sync\\ERPOrderSyncService.cs",
               "RelativeDocumentMoniker": "LPS.APS.Engine\\Services\\Sync\\ERPOrderSyncService.cs",
@@ -274,7 +241,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 11,
               "Title": "IntervalTree.cs",
               "DocumentMoniker": "D:\\AIProjs\\gitprojs\\lpscode\\LPS.APS.Scheduling\\Algorithms\\IntervalTree.cs",
               "RelativeDocumentMoniker": "LPS.APS.Scheduling\\Algorithms\\IntervalTree.cs",

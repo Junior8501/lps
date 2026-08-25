@@ -5,6 +5,22 @@ using LPS.APS.Core.Dto;
 
 namespace LPS.APS.BusinessRules.Services;
 
+/// <summary>
+/// Position 5 Supply Service
+///
+/// 【职责边界说明 - 2026-08-25新基线】
+/// 5号位职责：提供原始采购事实（ETA/ReleaseDate/Warehouse等）
+/// 5号位不再负责：计算Effective ETA和AvailableTime（属于2号位职责）
+///
+/// 正式链路（新基线）：
+///   5号位：装载原始事实（ERP ETA + ReleaseDate）
+///     ↓
+///   2号位：读取ManualEta覆盖 + 计算Effective ETA + 计算AvailableTime
+///     ↓
+///   2号位：Pegging / Solver
+///
+/// 参考：文档/20260818/更新文档20260825/APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md
+/// </summary>
 public class Position5SupplyService
 {
     private readonly TimedSupplyFactLoader _loader;
@@ -18,6 +34,9 @@ public class Position5SupplyService
         _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
     }
 
+    /// <summary>
+    /// 装载原始采购供给事实（5号位新职责：只提供原始事实，不计算Effective ETA/AvailableTime）
+    /// </summary>
     public async Task<Position5SupplyResult> LoadProcurementSupplyAsync(
         SupplyFactScope scope,
         FrozenFactParameters parameters,
@@ -39,22 +58,17 @@ public class Position5SupplyService
             var rawFacts = await _loader.LoadRawFactsAsync(scope, ct);
             result.RawFactCount = rawFacts.Count;
 
-            // Service Overlay: 装载ManualEta覆盖（Loader后Service叠加）
-            var manualEtaOverrides = await LoadManualEtaOverridesAsync(scope, ct);
-
             var validFacts = new List<TimedSupplyFact>();
             var issues = new List<Position5Issue>();
-            var referenceTime = DateTime.UtcNow;
 
             foreach (var rawFact in rawFacts)
             {
                 try
                 {
-                    var timedFact = _calculator.CalculateEffectiveSupply(rawFact, parameters, referenceTime);
-
-                    // Service Overlay: 如果存在ManualEta覆盖，替换Eta字段
-                    var overlayedFact = ApplyManualEtaOverlay(timedFact, manualEtaOverrides);
-                    validFacts.Add(overlayedFact);
+                    // 【2026-08-25新基线】5号位只转换原始事实，不计算Effective ETA/AvailableTime
+                    // Effective ETA和AvailableTime由2号位计算
+                    var supplyFact = ConvertToSupplyFact(rawFact);
+                    validFacts.Add(supplyFact);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -104,8 +118,44 @@ public class Position5SupplyService
     }
 
     /// <summary>
-    /// 装载ManualEta覆盖事实（Service Overlay）
+    /// 转换原始采购事实为Supply Fact（仅填充原始字段，不计算Effective ETA/AvailableTime）
     /// </summary>
+    private TimedSupplyFact ConvertToSupplyFact(RawProcurementFact raw)
+    {
+        return new TimedSupplyFact
+        {
+            SupplyType = raw.SupplyType,
+            PhysicalSourceKey = raw.PhysicalSourceKey,
+            MaterialId = raw.MaterialId,
+            MaterialCode = raw.MaterialCode,
+            FactoryId = raw.FactoryId,
+            FactoryCode = raw.FactoryCode,
+            WarehouseCode = raw.StorageCode,
+            RemainingQty = raw.RemainingQty,
+            Eta = raw.Eta,  // ERP原始ETA，不是Effective ETA
+            AvailableTime = null,  // 不计算，由2号位负责
+            CommitmentStatus = raw.CommitmentStatus,
+            Confidence = raw.Confidence,
+            SourceDocumentNo = raw.SourceDocumentNo,
+            SourceDocumentLineNo = raw.SourceDocumentLineNo,
+            SourceUpdatedAt = raw.SourceUpdatedAt
+        };
+    }
+
+    /// <summary>
+    /// 【已废弃 - 2026-08-25新基线】
+    /// 装载ManualEta覆盖事实
+    ///
+    /// 废弃原因：根据新冻结基线，ManualEta覆盖和Effective ETA计算属于2号位职责
+    /// 本方法保留仅供向后兼容，不得用于正式生产链路
+    ///
+    /// 新职责分工：
+    /// - 5号位：提供ProcurementManualEtaOverride表和Repository接口
+    /// - 2号位：读取ManualEta并计算Effective ETA/AvailableTime
+    ///
+    /// 参考：APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md P0-1
+    /// </summary>
+    [Obsolete("ManualEta overlay已移至2号位职责。5号位只提供Repository接口，不执行最终ETA计算。", false)]
     private async Task<Dictionary<string, ProcurementManualEtaOverride>> LoadManualEtaOverridesAsync(
         SupplyFactScope scope,
         CancellationToken ct)
@@ -118,9 +168,15 @@ public class Position5SupplyService
     }
 
     /// <summary>
-    /// 应用ManualEta覆盖（Service Overlay）
-    /// 优先级公式（冻结）：ManualEta ?? ErpEta ?? ReleaseDate + DefaultLT
+    /// 【已废弃 - 2026-08-25新基线】
+    /// 应用ManualEta覆盖
+    ///
+    /// 废弃原因：根据新冻结基线，ManualEta覆盖和Effective ETA计算属于2号位职责
+    /// 本方法保留仅供向后兼容，不得用于正式生产链路
+    ///
+    /// 参考：APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md P0-1
     /// </summary>
+    [Obsolete("ManualEta overlay已移至2号位职责。5号位只提供原始事实，不执行最终ETA计算。", false)]
     private TimedSupplyFact ApplyManualEtaOverlay(
         TimedSupplyFact originalFact,
         Dictionary<string, ProcurementManualEtaOverride> overrides)
@@ -150,7 +206,7 @@ public class Position5SupplyService
                 RemainingQty = originalFact.RemainingQty,
                 Eta = manualOverride.ManualEta,  // 使用ManualEta覆盖
                 AvailableTime = manualOverride.ManualEta + offset,  // 重新计算AvailableTime
-                Commitment = originalFact.Commitment,
+                CommitmentStatus = originalFact.CommitmentStatus,
                 Confidence = originalFact.Confidence,
                 SourceDocumentNo = originalFact.SourceDocumentNo,
                 SourceDocumentLineNo = originalFact.SourceDocumentLineNo,

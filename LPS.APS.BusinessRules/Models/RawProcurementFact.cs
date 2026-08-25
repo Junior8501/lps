@@ -67,9 +67,9 @@ public sealed class RawProcurementFact
     public DateTime? ReleaseDate { get; init; }
 
     /// <summary>
-    /// 承诺度
+    /// 承诺状态（V1表示正式供应事实承诺状态）
     /// </summary>
-    public string Commitment { get; init; } = string.Empty;
+    public string CommitmentStatus { get; init; } = string.Empty;
 
     /// <summary>
     /// 可信度

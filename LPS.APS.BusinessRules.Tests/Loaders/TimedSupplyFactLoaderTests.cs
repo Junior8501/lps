@@ -46,7 +46,7 @@ public class TimedSupplyFactLoaderTests
                 ReleaseDate = new DateTime(2026, 8, 15),
                 StorageCode = "WH01",
                 SupplyType = "OPEN_PO_REMAINING",
-                Commitment = "COMMITTED",
+                CommitmentStatus = "COMMITTED",
                 Confidence = "HIGH",
                 PhysicalSourceKey = "PO-20260815-001",
                 SourceDocumentLineNo = "10",
