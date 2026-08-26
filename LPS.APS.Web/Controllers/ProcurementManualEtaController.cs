@@ -88,8 +88,8 @@ public class ProcurementManualEtaController : ControllerBase
     /// <param name="cancellationToken">取消令牌</param>
     [HttpGet("{poNo}/{lineNo}")]
     public async Task<ApiResponse<ProcurementManualEtaOverride?>> GetByBusinessKey(
-        string poNo,
-        [FromQuery] int lineNo,
+        [FromRoute] string poNo,
+        [FromRoute] int lineNo,
         [FromQuery] int materialId,
         [FromQuery] string receivingWarehouse,
         CancellationToken cancellationToken = default)
@@ -165,31 +165,6 @@ public class ProcurementManualEtaController : ControllerBase
         {
             _logger.LogError(ex, "Failed to cancel Manual ETA");
             return ApiResponse<string>.Fail(500, $"Cancel failed: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// 批量取消指定PO的所有Manual ETA
-    /// </summary>
-    [HttpDelete("po/{poNo}")]
-    public async Task<ApiResponse<int>> CancelByPoNo(
-        string poNo,
-        [FromQuery] string updatedBy,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var canceledCount = await _service.CancelByPoNoAsync(poNo, updatedBy, cancellationToken);
-            return ApiResponse<int>.Success(canceledCount, $"Canceled {canceledCount} Manual ETA record(s)");
-        }
-        catch (ArgumentException ex)
-        {
-            return ApiResponse<int>.Fail(400, $"Invalid parameters: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to cancel Manual ETA by PO");
-            return ApiResponse<int>.Fail(500, $"Batch cancel failed: {ex.Message}");
         }
     }
 }

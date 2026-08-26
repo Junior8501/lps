@@ -23,6 +23,7 @@ public static class BusinessRuleServiceExtensions
                     t.Namespace != null &&
                     (t.Namespace.StartsWith("LPS.APS.BusinessRules.Calculators") ||
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Services") ||
+                     t.Namespace.StartsWith("LPS.APS.BusinessRules.Repositories") ||
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Loaders") ||
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Converters")) &&
                     // 排除旧服务：PeggingRuleService和DefaultBatchSplitter已从V1路径退出

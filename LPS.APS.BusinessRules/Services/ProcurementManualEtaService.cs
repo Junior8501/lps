@@ -76,11 +76,6 @@ public class ProcurementManualEtaService
         if (string.IsNullOrWhiteSpace(etaOverride.UpdatedBy))
             throw new ArgumentException("UpdatedBy cannot be empty");
 
-        // ManualEta不能早于当前时间太多（业务规则：允许最多回溯7天）
-        var minAllowedEta = DateTime.UtcNow.AddDays(-7);
-        if (etaOverride.ManualEta < minAllowedEta)
-            throw new ArgumentException($"ManualEta cannot be earlier than {minAllowedEta:yyyy-MM-dd}");
-
         await _repository.UpsertAsync(etaOverride, ct);
     }
 
@@ -107,39 +102,5 @@ public class ProcurementManualEtaService
             throw new ArgumentException("UpdatedBy cannot be empty", nameof(updatedBy));
 
         return await _repository.CancelAsync(poNo, lineNo, materialId, receivingWarehouse, updatedBy, ct);
-    }
-
-    /// <summary>
-    /// 批量取消指定PO的所有Manual ETA
-    /// </summary>
-    public async Task<int> CancelByPoNoAsync(
-        string poNo,
-        string updatedBy,
-        CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(poNo))
-            throw new ArgumentException("PONo cannot be empty", nameof(poNo));
-        if (string.IsNullOrWhiteSpace(updatedBy))
-            throw new ArgumentException("UpdatedBy cannot be empty", nameof(updatedBy));
-
-        // 查询该PO下所有活动的Manual ETA
-        var records = await _repository.QueryAsync(null, new List<string> { poNo }, activeOnly: true, ct);
-
-        int canceledCount = 0;
-        foreach (var record in records)
-        {
-            var success = await _repository.CancelAsync(
-                record.PONo,
-                record.LineNo,
-                record.MaterialId,
-                record.ReceivingWarehouse,
-                updatedBy,
-                ct);
-
-            if (success)
-                canceledCount++;
-        }
-
-        return canceledCount;
     }
 }
