@@ -24,14 +24,10 @@ namespace LPS.APS.BusinessRules.Services;
 public class Position5SupplyService
 {
     private readonly TimedSupplyFactLoader _loader;
-    private readonly TimedSupplyFactCalculator _calculator;
 
-    public Position5SupplyService(
-        TimedSupplyFactLoader loader,
-        TimedSupplyFactCalculator calculator)
+    public Position5SupplyService(TimedSupplyFactLoader loader)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
-        _calculator = calculator ?? throw new ArgumentNullException(nameof(calculator));
     }
 
     /// <summary>
@@ -119,6 +115,9 @@ public class Position5SupplyService
 
     /// <summary>
     /// 转换原始采购事实为Supply Fact（仅填充原始字段，不计算Effective ETA/AvailableTime）
+    ///
+    /// 【2026-08-26审核修正】必须透出ReleaseDate字段供2号位F15兜底使用
+    /// 参考：复审报告P0-02
     /// </summary>
     private TimedSupplyFact ConvertToSupplyFact(RawProcurementFact raw)
     {
@@ -133,6 +132,7 @@ public class Position5SupplyService
             WarehouseCode = raw.StorageCode,
             RemainingQty = raw.RemainingQty,
             Eta = raw.Eta,  // ERP原始ETA，不是Effective ETA
+            ReleaseDate = raw.ReleaseDate,  // PO发行日期，供2号位F15兜底使用
             AvailableTime = null,  // 不计算，由2号位负责
             CommitmentStatus = raw.CommitmentStatus,
             Confidence = raw.Confidence,
@@ -140,82 +140,6 @@ public class Position5SupplyService
             SourceDocumentLineNo = raw.SourceDocumentLineNo,
             SourceUpdatedAt = raw.SourceUpdatedAt
         };
-    }
-
-    /// <summary>
-    /// 【已废弃 - 2026-08-25新基线】
-    /// 装载ManualEta覆盖事实
-    ///
-    /// 废弃原因：根据新冻结基线，ManualEta覆盖和Effective ETA计算属于2号位职责
-    /// 本方法保留仅供向后兼容，不得用于正式生产链路
-    ///
-    /// 新职责分工：
-    /// - 5号位：提供ProcurementManualEtaOverride表和Repository接口
-    /// - 2号位：读取ManualEta并计算Effective ETA/AvailableTime
-    ///
-    /// 参考：APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md P0-1
-    /// </summary>
-    [Obsolete("ManualEta overlay已移至2号位职责。5号位只提供Repository接口，不执行最终ETA计算。", false)]
-    private async Task<Dictionary<string, ProcurementManualEtaOverride>> LoadManualEtaOverridesAsync(
-        SupplyFactScope scope,
-        CancellationToken ct)
-    {
-        // TODO: 实现从ProcurementManualEtaOverride表装载
-        // Key格式: "{PONo}|{LineNo}|{MaterialId}|{ReceivingWarehouse}"
-        // 当前返回空字典作为桩实现
-        await Task.CompletedTask;
-        return new Dictionary<string, ProcurementManualEtaOverride>();
-    }
-
-    /// <summary>
-    /// 【已废弃 - 2026-08-25新基线】
-    /// 应用ManualEta覆盖
-    ///
-    /// 废弃原因：根据新冻结基线，ManualEta覆盖和Effective ETA计算属于2号位职责
-    /// 本方法保留仅供向后兼容，不得用于正式生产链路
-    ///
-    /// 参考：APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md P0-1
-    /// </summary>
-    [Obsolete("ManualEta overlay已移至2号位职责。5号位只提供原始事实，不执行最终ETA计算。", false)]
-    private TimedSupplyFact ApplyManualEtaOverlay(
-        TimedSupplyFact originalFact,
-        Dictionary<string, ProcurementManualEtaOverride> overrides)
-    {
-        // 构造查找键：PONo|LineNo|MaterialId|Warehouse
-        // PhysicalSourceKey通常是PONo或PONo-LineNo格式
-        var key = $"{originalFact.SourceDocumentNo}|{originalFact.SourceDocumentLineNo}|{originalFact.MaterialId}|{originalFact.WarehouseCode}";
-
-        if (overrides.TryGetValue(key, out var manualOverride) && manualOverride.IsActive)
-        {
-            // 创建新的TimedSupplyFact，替换Eta和AvailableTime
-            // AvailableTime需要重新计算（ManualEta + ArrivalToUsableOffset）
-            // 简化处理：假设offset已在原Eta→AvailableTime中体现，直接加相同offset
-            var offset = originalFact.AvailableTime.HasValue && originalFact.Eta.HasValue
-                ? originalFact.AvailableTime.Value - originalFact.Eta.Value
-                : TimeSpan.Zero;
-
-            return new TimedSupplyFact
-            {
-                SupplyType = originalFact.SupplyType,
-                PhysicalSourceKey = originalFact.PhysicalSourceKey,
-                MaterialId = originalFact.MaterialId,
-                MaterialCode = originalFact.MaterialCode,
-                FactoryId = originalFact.FactoryId,
-                FactoryCode = originalFact.FactoryCode,
-                WarehouseCode = originalFact.WarehouseCode,
-                RemainingQty = originalFact.RemainingQty,
-                Eta = manualOverride.ManualEta,  // 使用ManualEta覆盖
-                AvailableTime = manualOverride.ManualEta + offset,  // 重新计算AvailableTime
-                CommitmentStatus = originalFact.CommitmentStatus,
-                Confidence = originalFact.Confidence,
-                SourceDocumentNo = originalFact.SourceDocumentNo,
-                SourceDocumentLineNo = originalFact.SourceDocumentLineNo,
-                SourceUpdatedAt = originalFact.SourceUpdatedAt
-            };
-        }
-
-        // 无覆盖，返回原Fact
-        return originalFact;
     }
 }
 

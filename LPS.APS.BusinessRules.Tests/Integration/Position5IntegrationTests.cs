@@ -22,8 +22,7 @@ public class Position5IntegrationTests
     {
         _mockConnectionManager = new Mock<DatabaseConnectionManager>();
         var loader = new TimedSupplyFactLoader(_mockConnectionManager.Object);
-        var calculator = new TimedSupplyFactCalculator();
-        _service = new Position5SupplyService(loader, calculator);
+        _service = new Position5SupplyService(loader);
     }
 
     [Test]

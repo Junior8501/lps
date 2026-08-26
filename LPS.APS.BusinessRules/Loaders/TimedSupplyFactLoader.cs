@@ -40,7 +40,8 @@ public class TimedSupplyFactLoader
                 sfp.ReleaseDate,
                 sfp.StorageCode,
                 sfp.SupplyType,
-                sfp.CommitmentStatus AS Commitment,
+                sfp.CommitmentStatus,
+                sfp.SourceDocumentNo,
                 sfp.SourceDocumentNo AS PhysicalSourceKey,
                 sfp.SourceDocumentLineNo,
                 sfp.SourceUpdatedAt

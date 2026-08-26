@@ -48,13 +48,26 @@ public sealed class TimedSupplyFact
     public decimal RemainingQty { get; init; }
 
     /// <summary>
-    /// ETA（预计到达时间，已完成优先级计算的最终生效ETA）
+    /// ETA（ERP原始预计到达时间，不是Effective ETA）
+    ///
+    /// 【2026-08-26新基线】5号位输出ERP原始ETA，可能为null
+    /// Effective ETA计算（ManualEta ?? ErpEta ?? ReleaseDate+DefaultLT）由2号位负责
     /// </summary>
     public DateTime? Eta { get; init; }
 
     /// <summary>
-    /// 排程可用时间（ETA + ArrivalToUsableOffset）
-    /// 2号位按此时间消费Supply
+    /// PO发行/下发日期（用于ETA兜底计算：ReleaseDate + DefaultLT）
+    ///
+    /// 【2026-08-26新基线】冻结接口必需字段，供2号位F15兜底逻辑使用
+    /// 参考：复审报告P0-02
+    /// </summary>
+    public DateTime? ReleaseDate { get; init; }
+
+    /// <summary>
+    /// 排程可用时间（由2号位计算Effective ETA + ArrivalToUsableOffset后填充）
+    ///
+    /// 【2026-08-26新基线】5号位输出阶段为null，由2号位计算后使用
+    /// 参考：复审报告P1-03
     /// </summary>
     public DateTime? AvailableTime { get; init; }
 

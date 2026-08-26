@@ -7,12 +7,14 @@ namespace LPS.APS.BusinessRules.Repositories;
 /// <summary>
 /// 采购人工ETA Repository实现
 ///
-/// 【实现说明】
+/// 【实现说明 - 2026-08-26审核修正】
+/// - 数据库：DatabaseId.APS（不是ODS）
 /// - 表名：ProcurementManualEtaOverride
 /// - 业务键：PONo + LineNo + MaterialId + ReceivingWarehouse
 /// - 取消方式：IsActive=0（不物理删除）
 ///
-/// 参考：APS_V1_5号位新基线增量整改开发包_v1.0_20260825.md P0-2
+/// 审核裁决：Manual ETA属于APS业务事实表，不属于ODS防腐层
+/// 参考：APS_V1_5号位_Commit_42a16ed_新基线整改复审报告_20260825.md P0-01
 /// </summary>
 public class ProcurementManualEtaRepository : IProcurementManualEtaRepository
 {
@@ -32,7 +34,7 @@ public class ProcurementManualEtaRepository : IProcurementManualEtaRepository
         var sql = @"
 SELECT
     PONo, LineNo, MaterialId, MaterialCode, ReceivingWarehouse,
-    ManualEta, IsActive, UpdatedBy, UpdatedAt
+    ManualEta, IsActive, UpdatedBy, UpdatedAt, CreatedBy, CreatedAt, Remark
 FROM ProcurementManualEtaOverride
 WHERE 1=1
     AND (@ActiveOnly = 0 OR IsActive = 1)
@@ -51,7 +53,7 @@ ORDER BY UpdatedAt DESC";
             sql,
             parameters,
             CommandType.Text,
-            DatabaseId.ODS,
+            DatabaseId.APS,
             commandTimeout: 30);
 
         return results.ToList();
@@ -67,7 +69,7 @@ ORDER BY UpdatedAt DESC";
         var sql = @"
 SELECT
     PONo, LineNo, MaterialId, MaterialCode, ReceivingWarehouse,
-    ManualEta, IsActive, UpdatedBy, UpdatedAt
+    ManualEta, IsActive, UpdatedBy, UpdatedAt, CreatedBy, CreatedAt, Remark
 FROM ProcurementManualEtaOverride
 WHERE PONo = @PONo
     AND LineNo = @LineNo
@@ -86,7 +88,7 @@ WHERE PONo = @PONo
             sql,
             parameters,
             CommandType.Text,
-            DatabaseId.ODS,
+            DatabaseId.APS,
             commandTimeout: 10);
 
         return results.FirstOrDefault();
@@ -129,14 +131,14 @@ WHEN NOT MATCHED THEN
             ManualEta = @override.ManualEta,
             IsActive = @override.IsActive ? 1 : 0,
             UpdatedBy = @override.UpdatedBy,
-            Remark = (object?)null  // 暂不支持Remark，ProcurementManualEtaOverride DTO中没有该字段
+            Remark = @override.Remark
         };
 
         await _connectionManager.ExecuteAsync(
             sql,
             parameters,
             CommandType.Text,
-            DatabaseId.ODS,
+            DatabaseId.APS,
             commandTimeout: 30);
     }
 
@@ -171,7 +173,7 @@ WHERE PONo = @PONo
             sql,
             parameters,
             CommandType.Text,
-            DatabaseId.ODS,
+            DatabaseId.APS,
             commandTimeout: 10);
 
         return rowCount > 0;
