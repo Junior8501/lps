@@ -9,11 +9,10 @@ namespace LPS.APS.Web.Controllers;
 /// 采购人工ETA维护控制器（5号位提供，供4号位前端调用）
 ///
 /// 路由规范：
-///   GET  /api/procurement-manual-eta                    - 查询Manual ETA列表
-///   GET  /api/procurement-manual-eta/{poNo}/{lineNo}    - 查询单条记录
-///   POST /api/procurement-manual-eta                    - 新增或更新Manual ETA
+///   GET    /api/procurement-manual-eta                  - 查询Manual ETA列表
+///   GET    /api/procurement-manual-eta/{poNo}/{lineNo}  - 查询单条记录
+///   POST   /api/procurement-manual-eta                  - 新增或更新Manual ETA
 ///   DELETE /api/procurement-manual-eta                  - 取消Manual ETA
-///   DELETE /api/procurement-manual-eta/po/{poNo}        - 批量取消指定PO的所有Manual ETA
 ///
 /// 【职责边界 - 2026-08-26】
 /// - 5号位提供Manual ETA维护API

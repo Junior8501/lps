@@ -23,9 +23,9 @@ namespace LPS.APS.BusinessRules.Services;
 /// </summary>
 public class Position5SupplyService
 {
-    private readonly TimedSupplyFactLoader _loader;
+    private readonly ITimedSupplyFactLoader _loader;
 
-    public Position5SupplyService(TimedSupplyFactLoader loader)
+    public Position5SupplyService(ITimedSupplyFactLoader loader)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
     }

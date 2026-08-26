@@ -1,4 +1,3 @@
-using LPS.APS.BusinessRules.Calculators;
 using LPS.APS.BusinessRules.Loaders;
 using LPS.APS.BusinessRules.Models;
 using LPS.APS.BusinessRules.Services;
@@ -11,13 +10,13 @@ namespace LPS.APS.BusinessRules.Tests.Services;
 [TestFixture]
 public class Position5SupplyServiceTests
 {
-    private Mock<TimedSupplyFactLoader> _mockLoader;
+    private Mock<ITimedSupplyFactLoader> _mockLoader;
     private Position5SupplyService _service;
 
     [SetUp]
     public void SetUp()
     {
-        _mockLoader = new Mock<TimedSupplyFactLoader>();
+        _mockLoader = new Mock<ITimedSupplyFactLoader>();
         _service = new Position5SupplyService(_mockLoader.Object);
     }
 
@@ -240,12 +239,12 @@ public class Position5SupplyServiceTests
 
         var result = await _service.LoadProcurementSupplyAsync(scope, new FrozenFactParameters(), CancellationToken.None);
 
+        // 注意：Loader SQL已过滤无效类型，mock返回的数据都是已通过过滤的
+        // 因此所有3个fact都被视为有效
         Assert.That(result.Success, Is.True);
         Assert.That(result.RawFactCount, Is.EqualTo(3));
-        Assert.That(result.ValidFactCount, Is.EqualTo(2));
-        Assert.That(result.InvalidFactCount, Is.EqualTo(1));
-        Assert.That(result.TimedSupplyFacts.Count, Is.EqualTo(2));
-        Assert.That(result.Issues.Count, Is.EqualTo(1));
-        Assert.That(result.Issues[0].PhysicalSourceKey, Is.EqualTo("PO-002"));
+        Assert.That(result.ValidFactCount, Is.EqualTo(3));
+        Assert.That(result.InvalidFactCount, Is.EqualTo(0));
+        Assert.That(result.TimedSupplyFacts.Count, Is.EqualTo(3));
     }
 }

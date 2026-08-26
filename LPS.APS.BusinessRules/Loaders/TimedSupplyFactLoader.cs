@@ -10,7 +10,7 @@ namespace LPS.APS.BusinessRules.Loaders;
 /// 从SupplyFact_Pipeline装载原始采购事实
 /// 职责边界：5号位仅负责加载Raw事实，不负责SupplyPool集成（2号位职责）
 /// </summary>
-public class TimedSupplyFactLoader
+public class TimedSupplyFactLoader : ITimedSupplyFactLoader
 {
     private readonly DatabaseConnectionManager _connectionManager;
 
