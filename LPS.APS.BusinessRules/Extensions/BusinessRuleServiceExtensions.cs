@@ -10,8 +10,7 @@ public static class BusinessRuleServiceExtensions
 {
     /// <summary>
     /// 注册业务规则服务（Scrutor 自动扫描）
-    /// V1正式路径：Calculators / Services / Loaders / Converters
-    /// 历史兼容类（PeggingRuleService / DefaultBatchSplitter）已退出正式DI路径
+    /// V1正式路径：Calculators / Services / Repositories / Loaders / Converters
     /// </summary>
     public static IServiceCollection AddBusinessRuleServices(this IServiceCollection services)
     {
@@ -25,10 +24,7 @@ public static class BusinessRuleServiceExtensions
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Services") ||
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Repositories") ||
                      t.Namespace.StartsWith("LPS.APS.BusinessRules.Loaders") ||
-                     t.Namespace.StartsWith("LPS.APS.BusinessRules.Converters")) &&
-                    // 排除旧服务：PeggingRuleService和DefaultBatchSplitter已从V1路径退出
-                    t.Name != "PeggingRuleService" &&
-                    t.Name != "DefaultBatchSplitter"))
+                     t.Namespace.StartsWith("LPS.APS.BusinessRules.Converters"))))
                 .AsSelfWithInterfaces()
                 .WithScopedLifetime()
         );

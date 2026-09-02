@@ -24,8 +24,15 @@ public interface IProcurementManualEtaRepository
     /// <returns>Manual ETA覆盖列表</returns>
     Task<List<ProcurementManualEtaOverride>> QueryAsync(
         List<int>? materialIds = null,
+        List<string>? materialCodes = null,
         List<string>? poNos = null,
+        List<string>? receivingWarehouses = null,
+        DateTime? etaBefore = null,
+        DateTime? etaAfter = null,
+        DateTime? updatedAfter = null,
         bool activeOnly = true,
+        int skip = 0,
+        int take = 100,
         CancellationToken ct = default);
 
     /// <summary>
@@ -49,7 +56,7 @@ public interface IProcurementManualEtaRepository
     /// </summary>
     /// <param name="override">Manual ETA覆盖数据</param>
     /// <param name="ct">取消令牌</param>
-    Task UpsertAsync(ProcurementManualEtaOverride @override, CancellationToken ct = default);
+    Task<ProcurementManualEtaOverride> UpsertAsync(ProcurementManualEtaOverride @override, CancellationToken ct = default);
 
     /// <summary>
     /// 取消Manual ETA（设置IsActive=0，不物理删除）

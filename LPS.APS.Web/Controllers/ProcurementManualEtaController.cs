@@ -12,7 +12,7 @@ namespace LPS.APS.Web.Controllers;
 ///   GET    /api/procurement-manual-eta                  - 查询Manual ETA列表
 ///   GET    /api/procurement-manual-eta/{poNo}/{lineNo}  - 查询单条记录
 ///   POST   /api/procurement-manual-eta                  - 新增或更新Manual ETA
-///   DELETE /api/procurement-manual-eta                  - 取消Manual ETA
+///   DELETE /api/procurement-manual-eta/{poNo}/{lineNo}  - 取消Manual ETA
 ///
 /// 【职责边界 - 2026-08-26】
 /// - 5号位提供Manual ETA维护API
@@ -38,15 +38,18 @@ public class ProcurementManualEtaController : ControllerBase
     /// <summary>
     /// 查询Manual ETA列表
     /// </summary>
-    /// <param name="materialIds">物料ID列表（可选，逗号分隔）</param>
-    /// <param name="poNos">采购订单号列表（可选，逗号分隔）</param>
-    /// <param name="activeOnly">仅返回活动记录</param>
-    /// <param name="cancellationToken">取消令牌</param>
     [HttpGet]
     public async Task<ApiResponse<List<ProcurementManualEtaOverride>>> Query(
         [FromQuery] string? materialIds = null,
+        [FromQuery] string? materialCodes = null,
         [FromQuery] string? poNos = null,
+        [FromQuery] string? receivingWarehouses = null,
+        [FromQuery] DateTime? etaBefore = null,
+        [FromQuery] DateTime? etaAfter = null,
+        [FromQuery] DateTime? updatedAfter = null,
         [FromQuery] bool activeOnly = true,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 100,
         CancellationToken cancellationToken = default)
     {
         try
@@ -59,6 +62,14 @@ public class ProcurementManualEtaController : ControllerBase
                     .ToList();
             }
 
+            List<string>? materialCodeList = null;
+            if (!string.IsNullOrWhiteSpace(materialCodes))
+            {
+                materialCodeList = materialCodes.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .ToList();
+            }
+
             List<string>? poNoList = null;
             if (!string.IsNullOrWhiteSpace(poNos))
             {
@@ -67,7 +78,29 @@ public class ProcurementManualEtaController : ControllerBase
                     .ToList();
             }
 
-            var result = await _service.QueryAsync(materialIdList, poNoList, activeOnly, cancellationToken);
+            List<string>? warehouseList = null;
+            if (!string.IsNullOrWhiteSpace(receivingWarehouses))
+            {
+                warehouseList = receivingWarehouses.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .ToList();
+            }
+
+            if (take <= 0 || take > 500) take = 100;
+
+            var result = await _service.QueryAsync(
+                materialIds: materialIdList,
+                materialCodes: materialCodeList,
+                poNos: poNoList,
+                receivingWarehouses: warehouseList,
+                etaBefore: etaBefore,
+                etaAfter: etaAfter,
+                updatedAfter: updatedAfter,
+                activeOnly: activeOnly,
+                skip: skip,
+                take: take,
+                ct: cancellationToken);
+
             return ApiResponse<List<ProcurementManualEtaOverride>>.Success(result);
         }
         catch (Exception ex)
@@ -80,11 +113,6 @@ public class ProcurementManualEtaController : ControllerBase
     /// <summary>
     /// 根据业务键查询单条Manual ETA记录
     /// </summary>
-    /// <param name="poNo">采购订单号</param>
-    /// <param name="lineNo">行号</param>
-    /// <param name="materialId">物料ID</param>
-    /// <param name="receivingWarehouse">接收仓库</param>
-    /// <param name="cancellationToken">取消令牌</param>
     [HttpGet("{poNo}/{lineNo}")]
     public async Task<ApiResponse<ProcurementManualEtaOverride?>> GetByBusinessKey(
         [FromRoute] string poNo,
@@ -116,54 +144,114 @@ public class ProcurementManualEtaController : ControllerBase
     /// 新增或更新Manual ETA
     /// </summary>
     [HttpPost]
-    public async Task<ApiResponse<string>> Upsert(
+    public async Task<ApiResponse<ProcurementManualEtaOverride>> Upsert(
         [FromBody] ProcurementManualEtaOverride etaOverride,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            await _service.UpsertAsync(etaOverride, cancellationToken);
-            return ApiResponse<string>.Success("Manual ETA saved successfully");
+            var saved = await _service.UpsertAsync(etaOverride, cancellationToken);
+            return ApiResponse<ProcurementManualEtaOverride>.Success(saved, "Manual ETA saved successfully");
         }
         catch (ArgumentException ex)
         {
-            return ApiResponse<string>.Fail(400, $"Validation failed: {ex.Message}");
+            return ApiResponse<ProcurementManualEtaOverride>.Fail(400, $"Validation failed: {ex.Message}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upsert Manual ETA");
-            return ApiResponse<string>.Fail(500, $"Save failed: {ex.Message}");
+            return ApiResponse<ProcurementManualEtaOverride>.Fail(500, $"Save failed: {ex.Message}");
         }
     }
 
     /// <summary>
     /// 取消Manual ETA（设置IsActive=0）
     /// </summary>
-    [HttpDelete]
-    public async Task<ApiResponse<string>> Cancel(
-        [FromQuery] string poNo,
-        [FromQuery] int lineNo,
-        [FromQuery] int materialId,
-        [FromQuery] string receivingWarehouse,
-        [FromQuery] string updatedBy,
+    [HttpDelete("{poNo}/{lineNo}")]
+    public async Task<ApiResponse<CancelManualEtaResponse>> Cancel(
+        [FromRoute] string poNo,
+        [FromRoute] int lineNo,
+        [FromBody] CancelManualEtaRequest request,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var success = await _service.CancelAsync(poNo, lineNo, materialId, receivingWarehouse, updatedBy, cancellationToken);
-            if (!success)
-                return ApiResponse<string>.Fail(404, "Record not found or already inactive");
+            var success = await _service.CancelAsync(
+                poNo, lineNo, request.MaterialId, request.ReceivingWarehouse,
+                request.UpdatedBy, cancellationToken);
 
-            return ApiResponse<string>.Success("Manual ETA canceled successfully");
+            if (!success)
+            {
+                // 可能是记录不存在，也可能是已经inactive（幂等）
+                var existing = await _service.GetByBusinessKeyAsync(
+                    poNo, lineNo, request.MaterialId, request.ReceivingWarehouse, cancellationToken);
+
+                if (existing == null)
+                    return ApiResponse<CancelManualEtaResponse>.Fail(404, "Record not found");
+
+                // 记录存在但已inactive，幂等返回200
+                if (!existing.IsActive)
+                {
+                    return ApiResponse<CancelManualEtaResponse>.Success(
+                        new CancelManualEtaResponse
+                        {
+                            PONo = poNo,
+                            LineNo = lineNo,
+                            MaterialId = request.MaterialId,
+                            ReceivingWarehouse = request.ReceivingWarehouse,
+                            AlreadyCanceled = true,
+                            CanceledAt = existing.UpdatedAt
+                        },
+                        "Manual ETA was already inactive");
+                }
+
+                return ApiResponse<CancelManualEtaResponse>.Fail(404, "Record not found");
+            }
+
+            return ApiResponse<CancelManualEtaResponse>.Success(
+                new CancelManualEtaResponse
+                {
+                    PONo = poNo,
+                    LineNo = lineNo,
+                    MaterialId = request.MaterialId,
+                    ReceivingWarehouse = request.ReceivingWarehouse,
+                    AlreadyCanceled = false,
+                    CanceledAt = DateTime.UtcNow
+                },
+                "Manual ETA canceled successfully");
         }
         catch (ArgumentException ex)
         {
-            return ApiResponse<string>.Fail(400, $"Invalid parameters: {ex.Message}");
+            return ApiResponse<CancelManualEtaResponse>.Fail(400, $"Invalid parameters: {ex.Message}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to cancel Manual ETA");
-            return ApiResponse<string>.Fail(500, $"Cancel failed: {ex.Message}");
+            return ApiResponse<CancelManualEtaResponse>.Fail(500, $"Cancel failed: {ex.Message}");
         }
     }
+}
+
+/// <summary>
+/// 取消Manual ETA请求体
+/// </summary>
+public class CancelManualEtaRequest
+{
+    public int MaterialId { get; init; }
+    public string ReceivingWarehouse { get; init; } = string.Empty;
+    public string UpdatedBy { get; init; } = string.Empty;
+    public string? Reason { get; init; }
+}
+
+/// <summary>
+/// 取消Manual ETA响应体
+/// </summary>
+public class CancelManualEtaResponse
+{
+    public string PONo { get; init; } = string.Empty;
+    public int LineNo { get; init; }
+    public int MaterialId { get; init; }
+    public string ReceivingWarehouse { get; init; } = string.Empty;
+    public bool AlreadyCanceled { get; init; }
+    public DateTime CanceledAt { get; init; }
 }

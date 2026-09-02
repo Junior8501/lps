@@ -1,30 +1,35 @@
 namespace LPS.APS.Core.Dto;
 
 /// <summary>
-/// 生产指示位置计算结果（5号位返回给2号位）
+/// 生产指示位置结果（5号位职责输出 — PI Position计算结果）
 ///
-/// 每个PI的Position必须满足：Σ PositionQty = ErpRemainingQty（总量闭合）
+/// 职责边界：
+/// - 5号位负责计算PI在工厂内的物理位置（Stage/XC/Transit/Waiting/Unlocated）
+/// - 2号位负责消费此结果，参与Pegging主流程
+///
+/// 冻结约束：
+/// - Σ PositionSlice.Quantity = TotalRemainingQty = ERP RemainingQty
+/// - 所有Position必须互斥，同一物理数量不能同时算Stage、XC和Transit
 /// </summary>
 public sealed class ProductionInstructionPositionResult
 {
     /// <summary>
-    /// 生产指示号
+    /// 生产指示单号
     /// </summary>
-    public string ProductionInstructionNo { get; init; } = string.Empty;
+    public string ProductionInstructionNo { get; init; } = default!;
 
     /// <summary>
-    /// 总剩余数量（应该等于输入的ErpRemainingQty）
+    /// 剩余总数量（必须等于所有PositionSlice.Quantity之和）
     /// </summary>
     public decimal TotalRemainingQty { get; init; }
 
     /// <summary>
-    /// Position切片列表（各个位置的数量分布）
-    /// 必须保证：Σ Positions[i].Quantity = TotalRemainingQty
+    /// 位置切片列表（Stage/XC/Transit/Waiting/Unlocated）
     /// </summary>
     public IReadOnlyList<PositionSlice> Positions { get; init; } = Array.Empty<PositionSlice>();
 
     /// <summary>
-    /// 计算过程中发现的问题
+    /// 位置计算问题记录
     /// </summary>
     public IReadOnlyList<PositionIssue> Issues { get; init; } = Array.Empty<PositionIssue>();
 

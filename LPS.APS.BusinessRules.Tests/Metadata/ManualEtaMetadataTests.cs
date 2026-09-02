@@ -42,7 +42,11 @@ public class ManualEtaMetadataTests
         {
             new ProcurementManualEtaOverride { PONo = "PO001", LineNo = 1, MaterialId = 100, IsActive = true }
         };
-        _mockRepo.Setup(r => r.QueryAsync(null, null, true, It.IsAny<CancellationToken>()))
+        _mockRepo.Setup(r => r.QueryAsync(
+                It.IsAny<List<int>?>(), It.IsAny<List<string>?>(), It.IsAny<List<string>?>(),
+                It.IsAny<List<string>?>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         // Act
@@ -127,8 +131,12 @@ public class ManualEtaMetadataTests
             ManualEta = new DateTime(2026, 9, 1),
             UpdatedBy = "testuser"
         };
+        _mockRepo.Setup(r => r.GetByBusinessKeyAsync(
+                It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProcurementManualEtaOverride?)null);
         _mockRepo.Setup(r => r.UpsertAsync(eta, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(eta);
 
         // Act
         await _service.UpsertAsync(eta);

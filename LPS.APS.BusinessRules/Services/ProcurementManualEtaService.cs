@@ -27,11 +27,21 @@ public class ProcurementManualEtaService
     /// </summary>
     public async Task<List<ProcurementManualEtaOverride>> QueryAsync(
         List<int>? materialIds = null,
+        List<string>? materialCodes = null,
         List<string>? poNos = null,
+        List<string>? receivingWarehouses = null,
+        DateTime? etaBefore = null,
+        DateTime? etaAfter = null,
+        DateTime? updatedAfter = null,
         bool activeOnly = true,
+        int skip = 0,
+        int take = 100,
         CancellationToken ct = default)
     {
-        return await _repository.QueryAsync(materialIds, poNos, activeOnly, ct);
+        return await _repository.QueryAsync(
+            materialIds, materialCodes, poNos, receivingWarehouses,
+            etaBefore, etaAfter, updatedAfter,
+            activeOnly, skip, take, ct);
     }
 
     /// <summary>
@@ -59,7 +69,7 @@ public class ProcurementManualEtaService
     /// <summary>
     /// 新增或更新Manual ETA
     /// </summary>
-    public async Task UpsertAsync(ProcurementManualEtaOverride etaOverride, CancellationToken ct = default)
+    public async Task<ProcurementManualEtaOverride> UpsertAsync(ProcurementManualEtaOverride etaOverride, CancellationToken ct = default)
     {
         if (etaOverride == null)
             throw new ArgumentNullException(nameof(etaOverride));
@@ -76,7 +86,7 @@ public class ProcurementManualEtaService
         if (string.IsNullOrWhiteSpace(etaOverride.UpdatedBy))
             throw new ArgumentException("UpdatedBy cannot be empty");
 
-        await _repository.UpsertAsync(etaOverride, ct);
+        return await _repository.UpsertAsync(etaOverride, ct);
     }
 
     /// <summary>

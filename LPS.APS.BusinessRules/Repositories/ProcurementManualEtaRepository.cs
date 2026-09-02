@@ -27,8 +27,15 @@ public class ProcurementManualEtaRepository : IProcurementManualEtaRepository
 
     public async Task<List<ProcurementManualEtaOverride>> QueryAsync(
         List<int>? materialIds = null,
+        List<string>? materialCodes = null,
         List<string>? poNos = null,
+        List<string>? receivingWarehouses = null,
+        DateTime? etaBefore = null,
+        DateTime? etaAfter = null,
+        DateTime? updatedAfter = null,
         bool activeOnly = true,
+        int skip = 0,
+        int take = 100,
         CancellationToken ct = default)
     {
         var sql = @"
@@ -39,14 +46,27 @@ FROM ProcurementManualEtaOverride
 WHERE 1=1
     AND (@ActiveOnly = 0 OR IsActive = 1)
     AND (@MaterialIds IS NULL OR MaterialId IN @MaterialIds)
+    AND (@MaterialCodes IS NULL OR MaterialCode IN @MaterialCodes)
     AND (@PONos IS NULL OR PONo IN @PONos)
-ORDER BY UpdatedAt DESC";
+    AND (@Warehouses IS NULL OR ReceivingWarehouse IN @Warehouses)
+    AND (@EtaBefore IS NULL OR ManualEta <= @EtaBefore)
+    AND (@EtaAfter IS NULL OR ManualEta >= @EtaAfter)
+    AND (@UpdatedAfter IS NULL OR UpdatedAt >= @UpdatedAfter)
+ORDER BY UpdatedAt DESC
+OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY";
 
         var parameters = new
         {
             ActiveOnly = activeOnly ? 1 : 0,
             MaterialIds = materialIds,
-            PONos = poNos
+            MaterialCodes = materialCodes,
+            PONos = poNos,
+            Warehouses = receivingWarehouses,
+            EtaBefore = etaBefore,
+            EtaAfter = etaAfter,
+            UpdatedAfter = updatedAfter,
+            Skip = skip,
+            Take = take
         };
 
         var results = await _connectionManager.QueryAsync<ProcurementManualEtaOverride>(
@@ -94,7 +114,7 @@ WHERE PONo = @PONo
         return results.FirstOrDefault();
     }
 
-    public async Task UpsertAsync(ProcurementManualEtaOverride @override, CancellationToken ct = default)
+    public async Task<ProcurementManualEtaOverride> UpsertAsync(ProcurementManualEtaOverride @override, CancellationToken ct = default)
     {
         var sql = @"
 MERGE INTO ProcurementManualEtaOverride AS target
@@ -140,6 +160,12 @@ WHEN NOT MATCHED THEN
             CommandType.Text,
             DatabaseId.APS,
             commandTimeout: 30);
+
+        // 查询保存后的完整实体返回
+        var saved = await GetByBusinessKeyAsync(
+            @override.PONo, @override.LineNo, @override.MaterialId, @override.ReceivingWarehouse, ct);
+
+        return saved!;
     }
 
     public async Task<bool> CancelAsync(

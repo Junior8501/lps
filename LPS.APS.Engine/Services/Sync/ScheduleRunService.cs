@@ -12,14 +12,17 @@ namespace LPS.APS.Engine.Services.Sync;
 public class ScheduleRunService : IScheduleRunService
 {
     private readonly DatabaseConnectionManager _connectionManager;
+    private readonly IDomainDefinitionService _domainDefinitionService;
     private readonly ILogger<ScheduleRunService> _logger;
 
     public ScheduleRunService(
         DatabaseConnectionManager connectionManager,
+        IDomainDefinitionService domainDefinitionService,
         ILogger<ScheduleRunService> logger)
     {
-        _connectionManager = connectionManager ?? throw new ArgumentNullException(nameof(connectionManager));
-        _logger            = logger            ?? throw new ArgumentNullException(nameof(logger));
+        _connectionManager      = connectionManager      ?? throw new ArgumentNullException(nameof(connectionManager));
+        _domainDefinitionService = domainDefinitionService ?? throw new ArgumentNullException(nameof(domainDefinitionService));
+        _logger                 = logger                 ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
@@ -39,6 +42,15 @@ public class ScheduleRunService : IScheduleRunService
             return existing;
         }
 
+        // 冻结预期 Domain 集合（ExpectedDomainKeysJson）：运行启动唯一权威来源。
+        // FULL_SCHEDULE 须 ≥1 Domain；DomainDefinition 为空 = 治理未配置，属配置错误，响亮失败不静默降级。
+        var domains = await _domainDefinitionService.GetActiveDomainsAsync(cancellationToken);
+        if (domains.Count == 0)
+            throw new InvalidOperationException("DomainDefinition 无有效（IsActive=1）Domain，无法创建 FULL_SCHEDULE ScheduleRun（预期 Domain 数须 ≥1）");
+
+        var expectedDomainKeysJson = System.Text.Json.JsonSerializer.Serialize(
+            domains.Select(d => d.DomainKey).ToList());
+
         var strategyVersionId = await _connectionManager.QueryFirstOrDefaultAsync<long?>(
             @"SELECT TOP 1 v.Id FROM StrategyProfileVersion v
               JOIN StrategyProfile p ON p.Id = v.StrategyProfileId
@@ -48,10 +60,10 @@ public class ScheduleRunService : IScheduleRunService
 
         var id = await _connectionManager.QueryFirstOrDefaultAsync<int>(
             @"INSERT INTO ScheduleRun
-                (RunType, Status, TriggeredBy, DataCutoffTime, StartedAt, CreatedAt, StrategyProfileVersionId)
+                (RunType, Status, TriggeredBy, DataCutoffTime, StartedAt, CreatedAt, StrategyProfileVersionId, ExpectedDomainKeysJson)
               OUTPUT INSERTED.Id
-              VALUES ('FULL_SCHEDULE', 'RUNNING', 'Hangfire', GETDATE(), GETDATE(), GETDATE(), @StrategyProfileVersionId)",
-            new { StrategyProfileVersionId = strategyVersionId },
+              VALUES ('FULL_SCHEDULE', 'RUNNING', 'Hangfire', GETDATE(), GETDATE(), GETDATE(), @StrategyProfileVersionId, @ExpectedDomainKeysJson)",
+            new { StrategyProfileVersionId = strategyVersionId, ExpectedDomainKeysJson = expectedDomainKeysJson },
             db: DatabaseId.APS);
 
         if (id <= 0)
@@ -76,6 +88,29 @@ public class ScheduleRunService : IScheduleRunService
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> GetExpectedDomainKeysAsync(int scheduleRunId, CancellationToken cancellationToken = default)
+    {
+        var json = await _connectionManager.QueryFirstOrDefaultAsync<string>(
+            @"SELECT ExpectedDomainKeysJson FROM ScheduleRun WHERE Id = @Id",
+            new { Id = scheduleRunId },
+            db: DatabaseId.APS);
+
+        if (string.IsNullOrWhiteSpace(json))
+            throw new InvalidOperationException($"ScheduleRun {scheduleRunId} 的 ExpectedDomainKeysJson 为空/缺失");
+
+        try
+        {
+            var domains = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [];
+            return domains.Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new InvalidOperationException(
+                $"ScheduleRun {scheduleRunId} 的 ExpectedDomainKeysJson 不是合法 JSON 数组：{ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc />
     public async Task CompleteAsync(int scheduleRunId, int durationSeconds, CancellationToken cancellationToken = default)
     {
         await _connectionManager.ExecuteAsync(
@@ -88,6 +123,22 @@ public class ScheduleRunService : IScheduleRunService
             db: DatabaseId.APS);
 
         _logger.LogInformation("ScheduleRun 完成: ScheduleRunId={Id}", scheduleRunId);
+    }
+
+    /// <inheritdoc />
+    public async Task PartialSuccessAsync(int scheduleRunId, int durationSeconds, string errorMessage, CancellationToken cancellationToken = default)
+    {
+        await _connectionManager.ExecuteAsync(
+            @"UPDATE ScheduleRun
+              SET Status          = 'PARTIAL_SUCCESS',
+                  CompletedAt     = GETDATE(),
+                  DurationSeconds = @DurationSeconds,
+                  ErrorMessage    = @ErrorMessage
+              WHERE Id = @Id",
+            new { Id = scheduleRunId, DurationSeconds = durationSeconds, ErrorMessage = errorMessage },
+            db: DatabaseId.APS);
+
+        _logger.LogInformation("ScheduleRun 部分成功: ScheduleRunId={Id}", scheduleRunId);
     }
 
     /// <inheritdoc />
