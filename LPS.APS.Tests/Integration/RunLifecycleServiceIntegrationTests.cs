@@ -44,6 +44,7 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
     private int _testPlanVersionId;
     private int _testBasePlanVersionId;
     private int _testCreatedRunId;
+    private int _testRecoveredRunId;
     private readonly string _uniqueSuffix;
     private readonly DateTime _now;
 
@@ -99,11 +100,11 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
         // 建 FAILED 运行（预期 Domain 冻结 ["D1","D2"]，引用真实策略包版本）
         await SetupFailedRunAsync();
 
-        // 恢复：新建 RUNNING 继承基线
-        var newRunId = await _service.RecoverFailedRunAsync(_testScheduleRunId, CancellationToken.None);
+        // 恢复：新建 RUNNING 继承基线（新 Run Id 必须存字段，供 Dispose 清理——否则引用策略版本残留，删版本 FK 冲突）
+        _testRecoveredRunId = await _service.RecoverFailedRunAsync(_testScheduleRunId, CancellationToken.None);
 
         // 新记录落库验证：RUNNING + 继承 RunType/StrategyProfileVersionId/ExpectedDomainKeysJson
-        var newRun = await _scheduleRunRepo.GetByIdAsync(newRunId);
+        var newRun = await _scheduleRunRepo.GetByIdAsync(_testRecoveredRunId);
         newRun.Should().NotBeNull();
         newRun!.Status.Should().Be("RUNNING");
         newRun.RunType.Should().Be("FULL_SCHEDULE");
@@ -181,7 +182,7 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
         // 确认（二轮复审 P0-05）：仅记审计，不写 ActivatedAt/ActivatedBy、不转 ACTIVE
         await _service.ConfirmCandidateAsync(_testPlanVersionId, "tester", "集成测试确认", CancellationToken.None);
         var confirmed = await _planVersionRepo.GetByIdAsync(_testPlanVersionId);
-        confirmed!.Status.Should().Be("CANDIDATE");
+        confirmed!.Status.Should().Be("Computed");
         confirmed.ActivatedAt.Should().BeNull();
         confirmed.ActivatedBy.Should().BeNull();
 
@@ -226,12 +227,12 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
         run.StrategyProfileVersionId.Should().Be(_testStrategyProfileVersionId);
         run.ExpectedDomainKeysJson.Should().Be($"""["{domainKey}"]""");
 
-        // 新壳落库：CANDIDATE + BUILDING + SourceScheduleRunId=新 Run（白天候选壳初始态）
+        // 新壳落库：CANDIDATE + Created + SourceScheduleRunId=新 Run（白天候选壳初始态，D7 词表）
         _testPlanVersionId = result.NewPlanVersionId;
         var shell = await _planVersionRepo.GetByIdAsync(result.NewPlanVersionId);
         shell.Should().NotBeNull();
         shell!.VersionCategory.Should().Be("CANDIDATE");
-        shell.Status.Should().Be("BUILDING");
+        shell.Status.Should().Be("Created");
         shell.DomainKey.Should().Be(domainKey);
         shell.SourceScheduleRunId.Should().Be(result.NewScheduleRunId);
     }
@@ -404,7 +405,7 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
                 ([VersionCode], [VersionCategory], [DomainKey], [Status], [SourceScheduleRunId],
                  [PlanHorizonStart], [PlanHorizonEnd], [ComputeMode], [CreatedBy], [CreatedAt])
               VALUES
-                (@VersionCode, 'RESCHEDULE', 'D1', 'CANDIDATE', @SourceScheduleRunId,
+                (@VersionCode, 'CANDIDATE', 'D1', 'Computed', @SourceScheduleRunId,
                  @PlanHorizonStart, @PlanHorizonEnd, 'SIMULATION', 'IntegrationTest', GETDATE());
               SELECT CAST(SCOPE_IDENTITY() AS INT);",
             new
@@ -494,6 +495,10 @@ public class RunLifecycleServiceIntegrationTests : IDisposable
         if (_testScheduleRunId > 0)
         {
             await _cm.ExecuteAsync("DELETE FROM ScheduleRun WHERE Id = @Id", new { Id = _testScheduleRunId }, db: DatabaseId.APS);
+        }
+        if (_testRecoveredRunId > 0)
+        {
+            await _cm.ExecuteAsync("DELETE FROM ScheduleRun WHERE Id = @Id", new { Id = _testRecoveredRunId }, db: DatabaseId.APS);
         }
         if (_testStrategyProfileVersionId > 0)
         {

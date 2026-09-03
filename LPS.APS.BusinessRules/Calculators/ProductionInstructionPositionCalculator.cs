@@ -207,9 +207,18 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
 
             if (qty > 0.0001m)  // 只记录有数量的Stage
             {
+                // 判断PositionType：首工序待开始 vs Stage等待
+                var isFirstStage = input.StagePath.Any(sp =>
+                    sp.StageCode == sortedStages[i].StageCode && sp.IsStartStage);
+                var hasNoCompletion = sortedStages[i].CumulativeCompletedQty <= 0.0001m;
+
+                var positionType = (isFirstStage && hasNoCompletion)
+                    ? PositionType.FIRST_STAGE_PENDING
+                    : PositionType.STAGE_WAITING;
+
                 stagePositions.Add(new PositionSlice
                 {
-                    PositionType = PositionType.STAGE,
+                    PositionType = positionType,
                     StageCode = sortedStages[i].StageCode,
                     Quantity = qty,
                     IsStrongEvidence = false,
@@ -320,7 +329,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
 
             transitPositions.Add(new PositionSlice
             {
-                PositionType = PositionType.INTERPLANT_IN_TRANSIT,
+                PositionType = PositionType.INTERPLANT_TRANSIT,
                 LocationKey = $"{transit.SourceFactoryCode}→{transit.TargetFactoryCode}",
                 StageCode = relatedStageCode,  // 关联到FromStage（如果能唯一定位）
                 Quantity = transit.Quantity,
@@ -396,7 +405,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
 
                 inventoryPositions.Add(new PositionSlice
                 {
-                    PositionType = PositionType.STAGE,
+                    PositionType = PositionType.STAGE_WAITING,
                     StageCode = inventory.RelatedStageCode,
                     Quantity = inventory.Quantity,
                     LocationKey = $"PiInventory:{inventory.WarehouseCode}",
@@ -410,7 +419,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
                 // 也可以不关联Stage（只知道在等待但不确定具体位置）
                 inventoryPositions.Add(new PositionSlice
                 {
-                    PositionType = PositionType.WAITING,
+                    PositionType = PositionType.STAGE_WAITING,
                     StageCode = inventory.RelatedStageCode,  // 可能为null
                     Quantity = inventory.Quantity,
                     LocationKey = $"Waiting:{inventory.WarehouseCode}",
@@ -547,7 +556,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
                 // 边界校验通过后，才能进行Stage扣减
                 // 找到对应Stage的Position
                 var stagePosition = positions
-                    .FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == received.RelatedStageCode);
+                    .FirstOrDefault(p => p.PositionType == PositionType.STAGE_WAITING && p.StageCode == received.RelatedStageCode);
 
                 if (stagePosition != null)
                 {
@@ -627,7 +636,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
     {
         // 阶段A：按Stage分组，扣除XC数量
         var stagePositions = positions
-            .Where(p => p.PositionType == PositionType.STAGE)
+            .Where(p => p.PositionType == PositionType.STAGE_WAITING)
             .ToList();
 
         var xcPositions = positions
@@ -635,7 +644,7 @@ public class ProductionInstructionPositionCalculator : IProductionInstructionPos
             .ToList();
 
         var transitPositions = positions
-            .Where(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT)
+            .Where(p => p.PositionType == PositionType.INTERPLANT_TRANSIT)
             .ToList();
 
         var deduplicatedStages = new List<PositionSlice>();

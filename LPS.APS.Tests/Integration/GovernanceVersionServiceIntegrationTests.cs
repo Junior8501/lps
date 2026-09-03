@@ -125,7 +125,8 @@ public class GovernanceVersionServiceIntegrationTests : IDisposable
         publishedSpv.IsDefault.Should().BeTrue();
 
         // 默认解析：RunType 命中唯一 PUBLISHED 默认版本
-        var resolved = await _service.ResolveDefaultStrategyProfileVersionAsync("FULL_SCHEDULE");
+        // 注：测试用独立 RunType（LOCAL_RESCHEDULE），避免与生产种子 SP-DEMO-V2.0（FULL_SCHEDULE IsDefault=1）歧义
+        var resolved = await _service.ResolveDefaultStrategyProfileVersionAsync("LOCAL_RESCHEDULE");
         resolved.Should().NotBeNull();
         resolved!.Id.Should().Be(_testStrategyProfileVersionId);
 
@@ -133,7 +134,7 @@ public class GovernanceVersionServiceIntegrationTests : IDisposable
         var trace = await _service.GetRunStrategyProfileTraceAsync(_testStrategyProfileVersionId);
         trace.StrategyProfileVersionId.Should().Be(_testStrategyProfileVersionId);
         trace.StrategyProfileCode.Should().NotBeNullOrWhiteSpace();
-        trace.RunType.Should().Be("FULL_SCHEDULE");
+        trace.RunType.Should().Be("LOCAL_RESCHEDULE");
         trace.RuleSetVersionId.Should().Be(_testRuleSetVersionId);
         trace.RuleSetVersionCode.Should().NotBeNullOrWhiteSpace();
         trace.ParameterSetVersionId.Should().Be(_testParameterSetVersionId);
@@ -325,10 +326,10 @@ public class GovernanceVersionServiceIntegrationTests : IDisposable
             new { Code = $"TEST-PS-{_uniqueSuffix}", Name = "集成测试参数集", Description = "Integration Test", CreatedAt = _now, CreatedBy = "IntegrationTest" },
             db: DatabaseId.APS);
 
-        // 父表：StrategyProfile（RunType=FULL_SCHEDULE 供默认解析命中）
+        // 父表：StrategyProfile（RunType=LOCAL_RESCHEDULE 供默认解析命中；独立 RunType 不与生产种子 FULL_SCHEDULE IsDefault=1 撞歧义）
         _testStrategyProfileId = await _cm.QueryFirstOrDefaultAsync<long>(
             "INSERT INTO [dbo].[StrategyProfile] ([StrategyProfileCode], [StrategyProfileName], [Description], [RunType], [IsActive], [CreatedAt], [CreatedBy]) VALUES (@Code, @Name, @Description, @RunType, 1, @CreatedAt, @CreatedBy); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
-            new { Code = $"TEST-SP-{_uniqueSuffix}", Name = "集成测试策略包", Description = "Integration Test", RunType = "FULL_SCHEDULE", CreatedAt = _now, CreatedBy = "IntegrationTest" },
+            new { Code = $"TEST-SP-{_uniqueSuffix}", Name = "集成测试策略包", Description = "Integration Test", RunType = "LOCAL_RESCHEDULE", CreatedAt = _now, CreatedBy = "IntegrationTest" },
             db: DatabaseId.APS);
 
         // 版本表：RuleSetVersion —— 走服务层 CRUD（方案 A P0-01：入参 DemandPriorityJson 为内存字段，

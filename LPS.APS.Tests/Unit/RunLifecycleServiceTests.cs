@@ -67,15 +67,15 @@ public class RunLifecycleServiceTests
             StartedAt = DateTime.UtcNow,
         };
 
-    /// <summary>构造 CANDIDATE 计划版本（默认关联可激活来源 Run 2）</summary>
+    /// <summary>构造 CANDIDATE 计划版本（D7：候选身份在 VersionCategory，Status 走执行词表完成态 Computed；默认关联可激活来源 Run 2）</summary>
     private static PlanVersion CandidateVersion(int id = 5, string? domainKey = "D1", int? sourceScheduleRunId = 2)
         => new()
         {
             Id = id,
             VersionCode = "V-CAND-5",
-            VersionCategory = "RESCHEDULE",
+            VersionCategory = "CANDIDATE",
             DomainKey = domainKey,
-            Status = "CANDIDATE",
+            Status = "Computed",
             SourceScheduleRunId = sourceScheduleRunId,
             CreatedAt = DateTime.UtcNow,
         };
@@ -250,11 +250,11 @@ public class RunLifecycleServiceTests
     }
 
     [Fact]
-    public async Task Confirm_非CANDIDATE状态_抛异常()
+    public async Task Confirm_非候选VersionCategory_抛异常()
     {
-        // Arrange
+        // Arrange（D7：候选身份在 VersionCategory，RESCHEDULE 非候选 → 拒绝）
         var version = CandidateVersion(5);
-        version.Status = "BUILDING";
+        version.VersionCategory = "RESCHEDULE";
         _planVersionRepo.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(version);
 
         // Act
@@ -289,7 +289,7 @@ public class RunLifecycleServiceTests
         await _service.ConfirmCandidateAsync(5, "u1", "基于 Base ACTIVE 的新 Candidate", CancellationToken.None);
 
         // Assert：确认成功，仅记审计，不写 Activated、不转 ACTIVE、不触碰同域 ACTIVE
-        version.Status.Should().Be("CANDIDATE");
+        version.Status.Should().Be("Computed");
         _auditRepo.Verify(r => r.AddAsync(
             It.Is<GovernanceAuditLog>(l =>
                 l.OperationType == "ConfirmCandidate"
@@ -310,7 +310,7 @@ public class RunLifecycleServiceTests
         // Assert（P0-05）：确认不污染 ActivatedAt/ActivatedBy，状态保持 CANDIDATE，不写库
         version.ActivatedAt.Should().BeNull();
         version.ActivatedBy.Should().BeNull();
-        version.Status.Should().Be("CANDIDATE");
+        version.Status.Should().Be("Computed");
         _planVersionRepo.Verify(r => r.UpdateAsync(It.IsAny<PlanVersion>(), It.IsAny<CancellationToken>()), Times.Never);
         _auditRepo.Verify(r => r.AddAsync(
             It.Is<GovernanceAuditLog>(l =>
@@ -431,7 +431,7 @@ public class RunLifecycleServiceTests
                 l.OperationType == "ActivateCandidate"
                 && l.EntityType == "PlanVersion"
                 && l.EntityId == 5
-                && l.BeforeStatus == "CANDIDATE"
+                && l.BeforeStatus == "Computed"
                 && l.AfterStatus == "ACTIVE"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -459,7 +459,7 @@ public class RunLifecycleServiceTests
                 l.OperationType == "ActivateCandidate"
                 && l.EntityType == "PlanVersion"
                 && l.EntityId == 5
-                && l.BeforeStatus == "CANDIDATE"
+                && l.BeforeStatus == "Computed"
                 && l.AfterStatus == "ACTIVE"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -728,7 +728,7 @@ public class RunLifecycleServiceTests
     {
         // Arrange
         var baseVersion = ActiveBase();
-        baseVersion.Status = "CANDIDATE";
+        baseVersion.Status = "Created";
         _planVersionRepo.Setup(r => r.GetByIdAsync(50, It.IsAny<CancellationToken>())).ReturnsAsync(baseVersion);
 
         // Act

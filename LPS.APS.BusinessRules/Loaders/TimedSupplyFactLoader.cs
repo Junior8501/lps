@@ -49,7 +49,7 @@ public class TimedSupplyFactLoader : ITimedSupplyFactLoader
             WHERE sfp.IsActive = 1
               AND sfp.Quantity > 0
               AND sfp.SupplyType IN ('PURCHASE_IN_TRANSIT', 'OPEN_PO_REMAINING',
-                                      'ARRIVED_NOT_RECEIVED', 'VMI_ONSITE')
+                                      'ARRIVED_NOT_RECEIVED')
               AND (@MaterialIds IS NULL OR sfp.MaterialId IN @MaterialIds)
               AND (@FactoryIds IS NULL OR sfp.FactoryId IN @FactoryIds)
             ORDER BY sfp.MaterialId, sfp.FactoryId, sfp.AvailableTime";

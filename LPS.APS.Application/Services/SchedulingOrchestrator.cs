@@ -396,11 +396,6 @@ public class SchedulingOrchestrator : ISchedulingOrchestrator
                 IsSuccess        = isSuccess,
                 ScheduledCount   = totalTasks,
                 UnscheduledCount = peggingFailed.Count,
-                // Pegging 部分失败时聚合各单失败原因到 ErrorMessage（否则失败不可见，只记日志不落结果）
-                ErrorMessage     = isSuccess ? null :
-                    $"Pegging 失败 {peggingFailed.Count}/{peggingResults.Count} 单："
-                    + string.Join("；", peggingFailed.Take(10).Select(f => $"OrderId={f.OrderId}: {f.ErrorMessage}"))
-                    + (peggingFailed.Count > 10 ? $"；…等共 {peggingFailed.Count} 单" : string.Empty),
                 ElapsedMs        = stopwatch.ElapsedMilliseconds,
                 // FULL §9：成功 Domain 的 FinalTask 共享 Resource 占用区间，供后续 Domain 作不可用时间窗
                 EmittedResourceBlocks = isSuccess ? ExtractResourceOccupancyBlocks(peggingResults) : new List<ResourceBlock>(),

@@ -51,12 +51,26 @@ public class ScheduleRunService : IScheduleRunService
         var expectedDomainKeysJson = System.Text.Json.JsonSerializer.Serialize(
             domains.Select(d => d.DomainKey).ToList());
 
-        var strategyVersionId = await _connectionManager.QueryFirstOrDefaultAsync<long?>(
-            @"SELECT TOP 1 v.Id FROM StrategyProfileVersion v
+        // 默认策略包版本（FULL_SCHEDULE 的 IsDefault=1 且 PUBLISHED）：
+        // 0 个 → 治理未配置，响亮失败不静默降级（否则 ScheduleRun 带 NULL 版本整晚空跑）；
+        // 1 个 → 使用；多个 → 歧义报错（P0-06），不随机 TOP 1。
+        var defaultVersionIds = (await _connectionManager.QueryAsync<long>(
+            @"SELECT v.Id FROM StrategyProfileVersion v
               JOIN StrategyProfile p ON p.Id = v.StrategyProfileId
-              WHERE v.Status = 'PUBLISHED' AND v.IsDefault = 1 AND p.RunType = 'FULL_SCHEDULE'
+              WHERE v.Status = 'PUBLISHED' AND v.IsDefault = 1
+                AND p.RunType = 'FULL_SCHEDULE' AND p.IsActive = 1
               ORDER BY v.PublishedAt DESC",
-            db: DatabaseId.APS);
+            db: DatabaseId.APS)).ToList();
+
+        if (defaultVersionIds.Count == 0)
+            throw new InvalidOperationException(
+                "无默认 FULL_SCHEDULE 策略包版本（IsDefault=1 且 PUBLISHED），无法创建 ScheduleRun —— 请先在治理侧发布并标记默认版本");
+
+        if (defaultVersionIds.Count > 1)
+            throw new InvalidOperationException(
+                $"FULL_SCHEDULE 存在多个默认策略包版本（StrategyProfileVersionId = {string.Join(", ", defaultVersionIds)}），默认版本必须唯一，无法创建 ScheduleRun");
+
+        var strategyVersionId = defaultVersionIds[0];
 
         var id = await _connectionManager.QueryFirstOrDefaultAsync<int>(
             @"INSERT INTO ScheduleRun

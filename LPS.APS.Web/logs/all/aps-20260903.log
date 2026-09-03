@@ -1,0 +1,10 @@
+[2026-09-03 16:03:32.398 INF] [] ========================================
+[2026-09-03 16:03:32.440 INF] [] LPS.APS 应用程序启动中...
+[2026-09-03 16:03:32.441 INF] [] ========================================
+[2026-09-03 16:03:33.865 INF] [] LPS.APS 应用程序启动完成
+[2026-09-03 16:03:33.871 DBG] [Microsoft.Extensions.Hosting.Internal.Host] Hosting starting
+[2026-09-03 16:03:34.082 INF] [Microsoft.Hosting.Lifetime] Now listening on: http://localhost:5163
+[2026-09-03 16:03:34.188 INF] [Microsoft.Hosting.Lifetime] Application started. Press Ctrl+C to shut down.
+[2026-09-03 16:03:34.189 INF] [Microsoft.Hosting.Lifetime] Hosting environment: Development
+[2026-09-03 16:03:34.189 INF] [Microsoft.Hosting.Lifetime] Content root path: D:\AIProjs\gitprojs\lpscode\LPS.APS.Web
+[2026-09-03 16:03:34.190 DBG] [Microsoft.Extensions.Hosting.Internal.Host] Hosting started

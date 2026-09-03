@@ -24,7 +24,7 @@ public sealed class ProductionInstructionPositionResult
     public decimal TotalRemainingQty { get; init; }
 
     /// <summary>
-    /// 位置切片列表（Stage/XC/Transit/Waiting/Unlocated）
+    /// 位置切片列表（FIRST_STAGE_PENDING / STAGE_WAITING / XC / INTERPLANT_TRANSIT / UNLOCATED）
     /// </summary>
     public IReadOnlyList<PositionSlice> Positions { get; init; } = Array.Empty<PositionSlice>();
 

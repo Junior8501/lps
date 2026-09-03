@@ -68,6 +68,7 @@ public class PlanVersionBriefDto
 {
     public int PlanVersionId { get; set; }
     public string VersionCode { get; set; } = string.Empty;
+    public string VersionCategory { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime? ComputedAt { get; set; }
 }

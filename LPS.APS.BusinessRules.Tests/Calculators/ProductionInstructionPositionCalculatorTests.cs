@@ -199,7 +199,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
-        var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == "S10");
+        var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE_WAITING && p.StageCode == "S10");
         Assert.That(s10Position, Is.Not.Null);
         Assert.That(s10Position.Quantity, Is.EqualTo(30m));
 
@@ -245,12 +245,12 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
-        var transitPosition = result.Positions.First(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
+        var transitPosition = result.Positions.First(p => p.PositionType == PositionType.INTERPLANT_TRANSIT);
         Assert.That(transitPosition.Quantity, Is.EqualTo(25m));
 
         // F05规则：Transit与Stage互斥去重，Transit应从Stage扣除
         // Stage原始60 - Transit 25 = 35
-        var stagePosition = result.Positions.First(p => p.PositionType == PositionType.STAGE);
+        var stagePosition = result.Positions.First(p => p.PositionType == PositionType.STAGE_WAITING);
         Assert.That(stagePosition.Quantity, Is.EqualTo(35m), "Transit should be deducted from Stage (60 - 25 = 35)");
 
         // 剩余15应该进入UNLOCATED
@@ -339,7 +339,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
-        var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE && p.StageCode == "S10");
+        var s10Position = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.STAGE_WAITING && p.StageCode == "S10");
         if (s10Position != null)
         {
             Assert.That(s10Position.Quantity, Is.EqualTo(10m));
@@ -455,7 +455,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
-        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
+        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_TRANSIT);
         Assert.That(transitPosition, Is.Not.Null);
         Assert.That(transitPosition.Quantity, Is.EqualTo(50m));
 
@@ -516,7 +516,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit 60 - Received 30 = 30剩余在途
-        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
+        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_TRANSIT);
         Assert.That(transitPosition, Is.Not.Null);
         Assert.That(transitPosition.Quantity, Is.EqualTo(30m));
 
@@ -591,7 +591,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit-003B完全保留（不同SH不串用）
-        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
+        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_TRANSIT);
         Assert.That(transitPosition, Is.Not.Null);
         Assert.That(transitPosition.Quantity, Is.EqualTo(60m));
 
@@ -652,7 +652,7 @@ public class ProductionInstructionPositionCalculatorTests
         Assert.That(result.Positions.Sum(p => p.Quantity), Is.EqualTo(100m));
 
         // Transit已完全Received，不再计入Position
-        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_IN_TRANSIT);
+        var transitPosition = result.Positions.FirstOrDefault(p => p.PositionType == PositionType.INTERPLANT_TRANSIT);
         Assert.That(transitPosition == null || transitPosition.Quantity < 0.01m, Is.True);
 
         // Stage 50被Received完全消耗后变为0

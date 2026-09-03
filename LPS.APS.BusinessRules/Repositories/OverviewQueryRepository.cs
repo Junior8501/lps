@@ -134,7 +134,7 @@ SELECT
     CreatedAt,
     CreatedByUserName
 FROM PlanVersion
-WHERE Status = 'CANDIDATE'
+WHERE VersionCategory = 'CANDIDATE'
 ORDER BY CreatedAt DESC";
 
         var candidates = await _connectionManager.QueryAsync<CandidateBriefDto>(

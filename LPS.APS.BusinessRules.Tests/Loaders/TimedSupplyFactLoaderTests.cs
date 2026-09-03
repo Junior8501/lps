@@ -151,8 +151,7 @@ public class TimedSupplyFactLoaderTests
         {
             new RawProcurementFact { SupplyType = "OPEN_PO_REMAINING", RemainingQty = 100, PhysicalSourceKey = "PO1" },
             new RawProcurementFact { SupplyType = "PURCHASE_IN_TRANSIT", RemainingQty = 50, PhysicalSourceKey = "PO2" },
-            new RawProcurementFact { SupplyType = "ARRIVED_NOT_RECEIVED", RemainingQty = 30, PhysicalSourceKey = "PO3" },
-            new RawProcurementFact { SupplyType = "VMI_ONSITE", RemainingQty = 200, PhysicalSourceKey = "VMI1" }
+            new RawProcurementFact { SupplyType = "ARRIVED_NOT_RECEIVED", RemainingQty = 30, PhysicalSourceKey = "PO3" }
         };
 
         _mockConnectionManager
@@ -168,11 +167,10 @@ public class TimedSupplyFactLoaderTests
         var result = await _loader.LoadRawFactsAsync(scope, CancellationToken.None);
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(4));
+        Assert.That(result.Count, Is.EqualTo(3));
         Assert.That(result.Count(f => f.SupplyType == "OPEN_PO_REMAINING"), Is.EqualTo(1));
         Assert.That(result.Count(f => f.SupplyType == "PURCHASE_IN_TRANSIT"), Is.EqualTo(1));
         Assert.That(result.Count(f => f.SupplyType == "ARRIVED_NOT_RECEIVED"), Is.EqualTo(1));
-        Assert.That(result.Count(f => f.SupplyType == "VMI_ONSITE"), Is.EqualTo(1));
     }
 
     [Test]

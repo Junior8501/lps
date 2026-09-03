@@ -155,7 +155,7 @@ public class ScheduleRunRepository : IScheduleRunRepository
                      [SourceScheduleRunId], [CreatedBy], [CreatedAt])
                 OUTPUT INSERTED.[Id]
                 VALUES (@VersionCode, 'CANDIDATE', @DomainKey,
-                        @PlanHorizonStart, @PlanHorizonEnd, 'FULL', 'BUILDING',
+                        @PlanHorizonStart, @PlanHorizonEnd, 'FULL', 'Created',
                         @SourceScheduleRunId, @CreatedBy, @StartedAt)";
 
             var shellId = await connection.QueryFirstOrDefaultAsync<int>(insertShellSql,

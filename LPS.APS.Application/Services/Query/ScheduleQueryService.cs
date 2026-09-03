@@ -39,7 +39,7 @@ public class ScheduleQueryService : IScheduleQueryService
                 pv.Status, pv.ComputedAt,
                 pv.TotalTasks, pv.CreatedAt,
                 pv.SourceScheduleRunId, pv.ActivatedAt,
-                CASE WHEN pv.Status IN ('CANDIDATE', 'ARCHIVED')
+                CASE WHEN pv.VersionCategory = 'CANDIDATE' OR pv.Status = 'ARCHIVED'
                      THEN (
                          SELECT TOP 1 b.Id
                          FROM PlanVersion b
@@ -212,7 +212,7 @@ public class ScheduleQueryService : IScheduleQueryService
     {
         // 1. 双版本概要 + 存在性/状态校验（缺失 → 404；候选非 CANDIDATE → 400）
         var versions = (await _connectionManager.QueryAsync<PlanVersionBriefDto>(
-            @"SELECT Id AS PlanVersionId, VersionCode, Status, ComputedAt
+            @"SELECT Id AS PlanVersionId, VersionCode, VersionCategory, Status, ComputedAt
               FROM PlanVersion
               WHERE Id IN (@CandidateId, @BaseId)",
             new { CandidateId = candidatePlanVersionId, BaseId = basePlanVersionId },
@@ -223,9 +223,9 @@ public class ScheduleQueryService : IScheduleQueryService
         var baseSummary = versions.FirstOrDefault(v => v.PlanVersionId == basePlanVersionId)
             ?? throw new KeyNotFoundException($"基础计划版本不存在：{basePlanVersionId}");
 
-        if (!string.Equals(candidateSummary.Status, "CANDIDATE", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(candidateSummary.VersionCategory, "CANDIDATE", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"候选版本状态非 CANDIDATE（当前：{candidateSummary.Status}）");
+            throw new InvalidOperationException($"候选版本身份非 CANDIDATE（当前：{candidateSummary.VersionCategory}）");
         }
 
         var parameters = new { CandidateId = candidatePlanVersionId, BaseId = basePlanVersionId };

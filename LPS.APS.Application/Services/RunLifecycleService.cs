@@ -24,6 +24,8 @@ public class RunLifecycleService : IRunLifecycleService
     private const string ScheduleRunRunningStatus = "RUNNING";
     /// <summary>计划版本状态：CANDIDATE</summary>
     private const string PlanVersionCandidateStatus = "CANDIDATE";
+    private const string PlanVersionCreatedStatus = "Created";      // D7：候选壳初始状态（替代旧 BUILDING，2号位 执行词表）
+    private const string PlanVersionComputedStatus = "Computed";    // D7：候选执行完成终态（2号位 ExecuteDomainAsync 写）
     /// <summary>计划版本状态：ACTIVE（每域单一正式采用版本）</summary>
     private const string PlanVersionActiveStatus = "ACTIVE";
     /// <summary>INSERT_ORDER_WHATIF RunType：仅组合 CTP / INSERT_IMPACT_ANALYSIS，永远不得激活（实施包十九）</summary>
@@ -33,7 +35,7 @@ public class RunLifecycleService : IRunLifecycleService
     /// <summary>计划版本状态：FAILED（G8 域级状态判定）</summary>
     private const string PlanVersionFailedStatus = "FAILED";
     /// <summary>计划版本状态：BUILDING（G8 域级状态判定）</summary>
-    private const string PlanVersionBuildingStatus = "BUILDING";
+    // D7 废弃：候选壳初始 Status 改用 Created（PlanVersionCreatedStatus）；BUILDING 词表不再使用
     /// <summary>运行状态：COMPLETED（G8 终态判定）</summary>
     private const string ScheduleRunCompletedStatus = "COMPLETED";
     /// <summary>运行状态：PARTIAL_SUCCESS（G8 终态判定）</summary>
@@ -173,13 +175,14 @@ public class RunLifecycleService : IRunLifecycleService
         EnsureCandidateConfirmable(version);
 
         // 仅记审计：Actor / ConfirmedAt / CandidatePlanVersionId(=planVersionId) / 必要 Remark
+        // D7：审计状态记真实 Status（候选排程完成态 = Computed），不记旧 CANDIDATE 词表
         await _auditLogRepository.AddAsync(new GovernanceAuditLog
         {
             OperationType = ConfirmCandidateOperation,
             EntityType = "PlanVersion",
             EntityId = planVersionId,
-            BeforeStatus = PlanVersionCandidateStatus,
-            AfterStatus = PlanVersionCandidateStatus,
+            BeforeStatus = PlanVersionComputedStatus,
+            AfterStatus = PlanVersionComputedStatus,
             OperatedBy = actor,
             OperatedAt = DateTime.UtcNow,
             Remarks = $"确认候选版本（CandidatePlanVersionId={planVersionId}）"
@@ -228,7 +231,7 @@ public class RunLifecycleService : IRunLifecycleService
             OperationType = "ActivateCandidate",
             EntityType = "PlanVersion",
             EntityId = planVersionId,
-            BeforeStatus = PlanVersionCandidateStatus,
+            BeforeStatus = PlanVersionComputedStatus,
             AfterStatus = PlanVersionActiveStatus,
             OperatedBy = actor,
             OperatedAt = activatedAt,
@@ -269,12 +272,22 @@ public class RunLifecycleService : IRunLifecycleService
         }
     }
 
-    /// <summary>候选确认/激活前置校验：状态必须 CANDIDATE 且 DomainKey 非空（V1 必填语义）</summary>
+    /// <summary>
+    /// 候选确认/激活前置校验（D7 词表：候选身份在 VersionCategory，Status 走 2号位 执行词表）。
+    /// 门禁：VersionCategory 必须 CANDIDATE，且 Status 必须排程完成（Computed）才可确认/激活；DomainKey 非空（V1 必填语义）。
+    /// </summary>
     private static void EnsureCandidateConfirmable(PlanVersion version)
     {
-        if (version.Status != PlanVersionCandidateStatus)
+        if (version.VersionCategory != PlanVersionCandidateStatus)
         {
-            throw new InvalidOperationException($"计划版本 {version.Id} 状态为 {version.Status}，仅 CANDIDATE 可确认/激活");
+            throw new InvalidOperationException(
+                $"计划版本 {version.Id} 的 VersionCategory 为 {version.VersionCategory}，仅 CANDIDATE 可确认/激活");
+        }
+
+        if (version.Status != PlanVersionComputedStatus)
+        {
+            throw new InvalidOperationException(
+                $"计划版本 {version.Id} 状态为 {version.Status}（D7 执行词表），仅排程完成（Computed）可确认/激活");
         }
 
         if (string.IsNullOrWhiteSpace(version.DomainKey))
@@ -554,14 +567,15 @@ public class RunLifecycleService : IRunLifecycleService
             dto.ComputedAt = pv.ComputedAt;
             dto.ActivatedAt = pv.ActivatedAt;
 
-            dto.Status = pv.Status switch
-            {
-                PlanVersionActiveStatus => RunDomainCompletedStatus,
-                PlanVersionCandidateStatus => RunDomainCandidateStatus,
-                PlanVersionFailedStatus => RunDomainFailedStatus,
-                PlanVersionBuildingStatus => RunDomainRunningStatus,
-                _ => RunDomainRunningStatus,
-            };
+            // D7：候选身份在 VersionCategory（执行词表 Status 不写 CANDIDATE），域级候选待确认按 VersionCategory 判定
+            dto.Status = pv.VersionCategory == PlanVersionCandidateStatus
+                ? RunDomainCandidateStatus
+                : pv.Status switch
+                {
+                    PlanVersionActiveStatus => RunDomainCompletedStatus,
+                    PlanVersionFailedStatus => RunDomainFailedStatus,
+                    _ => RunDomainRunningStatus,
+                };
 
             if (pv.Status == PlanVersionFailedStatus)
             {

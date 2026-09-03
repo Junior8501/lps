@@ -30,6 +30,7 @@ public class GovernanceController : ControllerBase
     private readonly IRunLifecycleService _runLifecycleService;
     private readonly IScheduleRunRepository _scheduleRunRepo;
     private readonly IScheduleQueryService _queryService;
+    private readonly IDomainDefinitionGovernanceService _domainDefinitionService;
     private readonly ILogger<GovernanceController> _logger;
 
     public GovernanceController(
@@ -45,6 +46,7 @@ public class GovernanceController : ControllerBase
         IRunLifecycleService runLifecycleService,
         IScheduleRunRepository scheduleRunRepo,
         IScheduleQueryService queryService,
+        IDomainDefinitionGovernanceService domainDefinitionService,
         ILogger<GovernanceController> logger)
     {
         _governanceService = governanceService;
@@ -59,6 +61,7 @@ public class GovernanceController : ControllerBase
         _runLifecycleService = runLifecycleService;
         _scheduleRunRepo = scheduleRunRepo;
         _queryService = queryService;
+        _domainDefinitionService = domainDefinitionService;
         _logger = logger;
     }
 
@@ -793,6 +796,109 @@ public class GovernanceController : ControllerBase
         var pageValue = Math.Max(page ?? 1, 1);
         var sizeValue = Math.Clamp(pageSize ?? 20, 1, 500);
         return ((pageValue - 1) * sizeValue, sizeValue);
+    }
+
+    #endregion
+
+    #region DomainDefinition 治理（E-1：3号位 CRUD + 启用/停用 + 当前有效集合查询）
+
+    /// <summary>域定义列表（含停用；G-D01）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpGet("domain-definition")]
+    public async Task<IActionResult> GetDomainDefinitions(CancellationToken ct)
+    {
+        var result = await _domainDefinitionService.GetAllAsync(ct);
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>当前有效域集合（G-D09/G-D10：2号位归域执行唯一事实源）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpGet("domain-definition/active")]
+    public async Task<IActionResult> GetActiveDomainDefinitions(CancellationToken ct)
+    {
+        var result = await _domainDefinitionService.GetActiveAsync(ct);
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>域定义详情（G-D01）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpGet("domain-definition/{id}")]
+    public async Task<IActionResult> GetDomainDefinition(int id, CancellationToken ct)
+    {
+        var entity = await _domainDefinitionService.GetByIdAsync(id, ct);
+        if (entity == null)
+        {
+            return NotFound(new { success = false, error = $"域定义不存在：{id}" });
+        }
+        return Ok(new { success = true, data = entity });
+    }
+
+    /// <summary>新建域定义（G-D02：唯一性 / ScopeType / 引用合法性校验 + 审计；新建默认启用）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpPost("domain-definition")]
+    public async Task<IActionResult> CreateDomainDefinition([FromBody] DomainDefinition entity, CancellationToken ct)
+    {
+        try
+        {
+            var created = await _domainDefinitionService.CreateAsync(entity, entity.CreatedBy, ct);
+            return CreatedAtAction(nameof(GetDomainDefinition), new { id = created.Id }, new { success = true, data = created });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "域定义新建失败：{DomainKey}", entity.DomainKey);
+            return BadRequest(new { success = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>编辑域定义（G-D03~G-D05：DomainKey 不可变更 + 校验）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpPut("domain-definition/{id}")]
+    public async Task<IActionResult> UpdateDomainDefinition(int id, [FromBody] DomainDefinition entity, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _domainDefinitionService.UpdateAsync(id, entity, entity.UpdatedBy ?? entity.CreatedBy, ct);
+            return Ok(new { success = true, data = updated });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "域定义更新失败：{Id}", id);
+            return BadRequest(new { success = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>启用域定义（G-D16 反向）</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpPost("domain-definition/{id}/enable")]
+    public async Task<IActionResult> EnableDomainDefinition(int id, [FromQuery] string? operatedBy, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _domainDefinitionService.SetActiveAsync(id, true, operatedBy, ct);
+            return Ok(new { success = true, data = updated });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "域定义启用失败：{Id}", id);
+            return BadRequest(new { success = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>停用域定义</summary>
+    /// <remarks>开发者：3号位</remarks>
+    [HttpPost("domain-definition/{id}/disable")]
+    public async Task<IActionResult> DisableDomainDefinition(int id, [FromQuery] string? operatedBy, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _domainDefinitionService.SetActiveAsync(id, false, operatedBy, ct);
+            return Ok(new { success = true, data = updated });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "域定义停用失败：{Id}", id);
+            return BadRequest(new { success = false, error = ex.Message });
+        }
     }
 
     #endregion

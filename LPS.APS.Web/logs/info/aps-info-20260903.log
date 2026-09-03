@@ -1,0 +1,8 @@
+[2026-09-03 16:03:32.398] [] ========================================
+[2026-09-03 16:03:32.440] [] LPS.APS 应用程序启动中...
+[2026-09-03 16:03:32.441] [] ========================================
+[2026-09-03 16:03:33.865] [] LPS.APS 应用程序启动完成
+[2026-09-03 16:03:34.082] [Microsoft.Hosting.Lifetime] Now listening on: http://localhost:5163
+[2026-09-03 16:03:34.188] [Microsoft.Hosting.Lifetime] Application started. Press Ctrl+C to shut down.
+[2026-09-03 16:03:34.189] [Microsoft.Hosting.Lifetime] Hosting environment: Development
+[2026-09-03 16:03:34.189] [Microsoft.Hosting.Lifetime] Content root path: D:\AIProjs\gitprojs\lpscode\LPS.APS.Web
